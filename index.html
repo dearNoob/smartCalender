@@ -108,6 +108,40 @@
                 </div>
             </header>
 
+            <!-- Weather and Time Zone container -->
+            <div class="weather-time-container">
+                <div class="weather-container">
+                    <div class="weather-icon">
+                        <i class="fas fa-cloud-sun"></i>
+                    </div>
+                    <div class="weather-info">
+                        <div class="weather-location">Loading location...</div>
+                        <div class="weather-temp">--°C</div>
+                        <div class="weather-desc">Fetching weather...</div>
+                    </div>
+                    <button class="refresh-weather" id="refresh-weather">
+                        <i class="fas fa-sync-alt"></i>
+                    </button>
+                </div>
+                
+                <div class="timezone-container">
+                    <div class="clock" id="clock">00:00:00</div>
+                    <div class="timezone-select-container">
+                        <select id="timezone-select" class="timezone-select">
+                            <option value="local">Local Time</option>
+                            <option value="UTC">UTC</option>
+                            <option value="America/New_York">New York</option>
+                            <option value="America/Los_Angeles">Los Angeles</option>
+                            <option value="Europe/London">London</option>
+                            <option value="Europe/Paris">Paris</option>
+                            <option value="Asia/Tokyo">Tokyo</option>
+                            <option value="Asia/Dubai">Dubai</option>
+                            <option value="Australia/Sydney">Sydney</option>
+                        </select>
+                    </div>
+                </div>
+            </div>
+
             <div class="controls">
                 <div class="date-nav">
                     <button id="prev-btn">
@@ -269,7 +303,7 @@
             <div class="modal-body">
                 <form id="calendar-form">
                     <div class="form-group">
-                        <label for="calendar-name">Calendar Name Mehedi Hasan</label>
+                        <label for="calendar-name">Calendar Name</label>
                         <input type="text" id="calendar-name" required>
                     </div>
                     <div class="form-group">
@@ -355,6 +389,45 @@
                         </div>
                     </div>
                     <button class="connect-btn" data-service="apple">Connect</button>
+                </div>
+            </div>
+            
+            <!-- Location Settings Section -->
+            <div class="account-section" id="location-settings">
+                <div class="account-section-title">Location Settings</div>
+                <div class="form-group">
+                    <label for="location-input">Your Location</label>
+                    <div class="location-input-container">
+                        <input type="text" id="location-input" placeholder="Enter city name">
+                        <button class="btn-location" id="detect-location">
+                            <i class="fas fa-map-marker-alt"></i>
+                        </button>
+                    </div>
+                </div>
+                <div class="form-group">
+                    <label for="default-timezone">Default Time Zone</label>
+                    <select id="default-timezone">
+                        <option value="local">Local Time</option>
+                        <option value="UTC">UTC</option>
+                        <option value="America/New_York">New York</option>
+                        <option value="America/Los_Angeles">Los Angeles</option>
+                        <option value="Europe/London">London</option>
+                        <option value="Europe/Paris">Paris</option>
+                        <option value="Asia/Tokyo">Tokyo</option>
+                        <option value="Asia/Dubai">Dubai</option>
+                        <option value="Australia/Sydney">Sydney</option>
+                    </select>
+                </div>
+                <div class="form-group">
+                    <label>Weather Units</label>
+                    <div class="unit-options">
+                        <label class="unit-option">
+                            <input type="radio" name="weather-unit" value="metric" checked> Celsius (°C)
+                        </label>
+                        <label class="unit-option">
+                            <input type="radio" name="weather-unit" value="imperial"> Fahrenheit (°F)
+                        </label>
+                    </div>
                 </div>
             </div>
             

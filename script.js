@@ -11,13 +11,24 @@ let calendarSources = [
     { id: 'family', name: 'Family', color: 'event-color-3', visible: true }
 ];
 let draggedEvent = null; // Track event being dragged
+let userLocation = { 
+    city: 'London', 
+    lat: 51.5074, 
+    lon: -0.1278 
+};
+let weatherUnit = 'metric';
+let selectedTimezone = 'local';
+let clockInterval;
 let userSettings = {
     defaultView: 'week',
     weekStartsOn: 0, // 0 = Sunday, 1 = Monday
     timeFormat: '12', // 12 or 24 hour
     showWeekNumbers: false,
     defaultDarkMode: false,
-    defaultReminder: '30'
+    defaultReminder: '30',
+    location: { city: 'London', lat: 51.5074, lon: -0.1278 },
+    weatherUnit: 'metric',
+    defaultTimezone: 'local'
 };
 
 // Initialize calendar components
@@ -259,6 +270,16 @@ function setupEventListeners() {
     document.getElementById('import-calendar-btn').addEventListener('click', importCalendar);
     document.getElementById('export-calendar-btn').addEventListener('click', exportCalendar);
     document.getElementById('calendar-settings-btn').addEventListener('click', openAccountModal);
+    
+    // Weather and clock event listeners
+    document.getElementById('refresh-weather').addEventListener('click', fetchWeather);
+    document.getElementById('timezone-select').addEventListener('change', function() {
+        selectedTimezone = this.value;
+        updateClock();
+        localStorage.setItem('oneCalendarTimezone', selectedTimezone);
+    });
+
+    document.getElementById('detect-location').addEventListener('click', detectUserLocation);
 }
 
 // User settings functions
@@ -293,18 +314,37 @@ function applyUserSettings() {
     document.getElementById('show-week-numbers').checked = userSettings.showWeekNumbers;
     document.getElementById('default-reminder').value = userSettings.defaultReminder;
     
+    // Set weather unit radio button
+    document.querySelector(`input[name="weather-unit"][value="${userSettings.weatherUnit}"]`).checked = true;
+    weatherUnit = userSettings.weatherUnit;
+
+    // Set location input
+    document.getElementById('location-input').value = userSettings.location.city;
+    userLocation = userSettings.location;
+
+    // Set timezone
+    document.getElementById('default-timezone').value = userSettings.defaultTimezone;
+    document.getElementById('timezone-select').value = userSettings.defaultTimezone;
+    selectedTimezone = userSettings.defaultTimezone;
+    
     // Apply week start setting
     updateCalendarView();
 }
 
 function saveUserSettings() {
+    weatherUnit = document.querySelector('input[name="weather-unit"]:checked').value;
+    const defaultTimezone = document.getElementById('default-timezone').value;
+    
     userSettings = {
         defaultView: document.getElementById('default-view').value,
         weekStartsOn: parseInt(document.getElementById('week-starts').value),
         timeFormat: document.getElementById('time-format').value,
         showWeekNumbers: document.getElementById('show-week-numbers').checked,
         defaultDarkMode: document.getElementById('dark-mode-pref').checked,
-        defaultReminder: document.getElementById('default-reminder').value
+        defaultReminder: document.getElementById('default-reminder').value,
+        location: userLocation,
+        weatherUnit: weatherUnit,
+        defaultTimezone: defaultTimezone
     };
     
     // Save to localStorage
@@ -1643,6 +1683,276 @@ function syncWithOnlineCalendars() {
     }
 }
 
+// Weather and Clock Functions
+// Function to initialize weather and clock features
+function initializeWeatherAndClock() {
+    // Load saved timezone if any
+    const savedTimezone = localStorage.getItem('oneCalendarTimezone');
+    if (savedTimezone) {
+        selectedTimezone = savedTimezone;
+        document.getElementById('timezone-select').value = savedTimezone;
+    }
+    
+    // Start the clock
+    updateClock();
+    clockInterval = setInterval(updateClock, 1000);
+    
+    // Fetch weather on startup
+    fetchWeather();
+}
+
+// Function to update the clock based on selected timezone
+function updateClock() {
+    const clockElement = document.getElementById('clock');
+    let now;
+    
+    if (selectedTimezone === 'local') {
+        now = new Date();
+    } else {
+        now = new Date(new Date().toLocaleString('en-US', { timeZone: selectedTimezone }));
+    }
+    
+    let hours, minutes, seconds, period;
+    
+    if (userSettings.timeFormat === '12') {
+        hours = now.getHours() % 12 || 12;
+        minutes = now.getMinutes().toString().padStart(2, '0');
+        seconds = now.getSeconds().toString().padStart(2, '0');
+        period = now.getHours() >= 12 ? 'PM' : 'AM';
+        clockElement.textContent = `${hours}:${minutes}:${seconds} ${period}`;
+    } else {
+        hours = now.getHours().toString().padStart(2, '0');
+        minutes = now.getMinutes().toString().padStart(2, '0');
+        seconds = now.getSeconds().toString().padStart(2, '0');
+        clockElement.textContent = `${hours}:${minutes}:${seconds}`;
+    }
+}
+
+// Function to fetch weather data from OpenWeatherMap API
+function fetchWeather() {
+    // Add a spinning effect to the refresh button while loading
+    const refreshButton = document.getElementById('refresh-weather');
+    refreshButton.style.transform = 'rotate(360deg)';
+    refreshButton.disabled = true;
+    
+    // Weather loading state
+    document.querySelector('.weather-temp').textContent = '--°C';
+    document.querySelector('.weather-desc').textContent = 'Fetching weather...';
+    
+    // API key for OpenWeatherMap (you should use your own API key)
+    // For demo purposes, this is a placeholder
+    const apiKey = 'YOUR_API_KEY';  // Replace with your actual API key
+    
+    // In a real app, you would make an actual API call
+    // For this demo, we'll simulate a response after a delay
+    setTimeout(() => {
+        // This simulates weather data
+        // In a real app, you would fetch from OpenWeatherMap API
+        const weatherData = simulateWeatherData(userLocation, weatherUnit);
+        updateWeatherDisplay(weatherData);
+        
+        // Reset the refresh button
+        refreshButton.style.transform = 'none';
+        refreshButton.disabled = false;
+    }, 1500);
+    
+    // In a real app, you would use fetch like this:
+    /*
+    fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${userLocation.lat}&lon=${userLocation.lon}&units=${weatherUnit}&appid=${apiKey}`)
+        .then(response => response.json())
+        .then(data => {
+            updateWeatherDisplay(data);
+            refreshButton.style.transform = 'none';
+            refreshButton.disabled = false;
+        })
+        .catch(error => {
+            console.error('Error fetching weather:', error);
+            document.querySelector('.weather-temp').textContent = '--';
+            document.querySelector('.weather-desc').textContent = 'Weather unavailable';
+            refreshButton.style.transform = 'none';
+            refreshButton.disabled = false;
+        });
+    */
+}
+
+// Function to simulate weather data (for demo purposes)
+function simulateWeatherData(location, unit) {
+    const temperatures = {
+        'London': { metric: 15, imperial: 59 },
+        'New York': { metric: 18, imperial: 64 },
+        'Tokyo': { metric: 22, imperial: 72 },
+        'Sydney': { metric: 25, imperial: 77 },
+        'Paris': { metric: 17, imperial: 63 }
+    };
+    
+    const descriptions = [
+        'Clear sky', 'Few clouds', 'Scattered clouds', 
+        'Broken clouds', 'Shower rain', 'Rain', 
+        'Thunderstorm', 'Snow', 'Mist'
+    ];
+    
+    const icons = {
+        'Clear sky': 'fa-sun',
+        'Few clouds': 'fa-cloud-sun',
+        'Scattered clouds': 'fa-cloud',
+        'Broken clouds': 'fa-cloud',
+        'Shower rain': 'fa-cloud-showers-heavy',
+        'Rain': 'fa-cloud-rain',
+        'Thunderstorm': 'fa-bolt',
+        'Snow': 'fa-snowflake',
+        'Mist': 'fa-smog'
+    };
+    
+    // Get temperature for location or random if not found
+    const temp = temperatures[location.city] ? 
+        temperatures[location.city][unit] : 
+        Math.floor(Math.random() * 30) + (unit === 'metric' ? 5 : 40);
+    
+    // Get random weather description
+    const description = descriptions[Math.floor(Math.random() * descriptions.length)];
+    
+    return {
+        name: location.city,
+        main: {
+            temp: temp
+        },
+        weather: [{
+            description: description,
+            icon: icons[description] || 'fa-cloud'
+        }]
+    };
+}
+
+// Function to update the weather display with data
+function updateWeatherDisplay(data) {
+    const locationElement = document.querySelector('.weather-location');
+    const tempElement = document.querySelector('.weather-temp');
+    const descElement = document.querySelector('.weather-desc');
+    const iconElement = document.querySelector('.weather-icon i');
+    
+    // Update location
+    locationElement.textContent = data.name;
+    
+    // Update temperature with unit
+    const tempUnit = weatherUnit === 'metric' ? '°C' : '°F';
+    tempElement.textContent = `${Math.round(data.main.temp)}${tempUnit}`;
+    
+    // Update description
+    descElement.textContent = data.weather[0].description.charAt(0).toUpperCase() + 
+                               data.weather[0].description.slice(1);
+    
+    // Update icon
+    iconElement.className = '';
+    iconElement.classList.add('fas');
+    
+    // If using the simulation
+    if (data.weather[0].icon.startsWith('fa-')) {
+        iconElement.classList.add(data.weather[0].icon);
+    } else {
+        // If using actual OpenWeatherMap data, map icon codes to Font Awesome icons
+        const iconMap = {
+            '01d': 'fa-sun',
+            '01n': 'fa-moon',
+            '02d': 'fa-cloud-sun',
+            '02n': 'fa-cloud-moon',
+            '03d': 'fa-cloud',
+            '03n': 'fa-cloud',
+            '04d': 'fa-cloud',
+            '04n': 'fa-cloud',
+            '09d': 'fa-cloud-showers-heavy',
+            '09n': 'fa-cloud-showers-heavy',
+            '10d': 'fa-cloud-rain',
+            '10n': 'fa-cloud-rain',
+            '11d': 'fa-bolt',
+            '11n': 'fa-bolt',
+            '13d': 'fa-snowflake',
+            '13n': 'fa-snowflake',
+            '50d': 'fa-smog',
+            '50n': 'fa-smog'
+        };
+        
+        iconElement.classList.add(iconMap[data.weather[0].icon] || 'fa-cloud');
+    }
+}
+
+// Function to detect user's location using browser geolocation
+function detectUserLocation() {
+    if (navigator.geolocation) {
+        document.getElementById('detect-location').innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
+        
+        navigator.geolocation.getCurrentPosition(
+            position => {
+                // In a real app, you would use reverse geocoding to get the city name
+                // For demo purposes, we'll simulate it
+                const lat = position.coords.latitude;
+                const lon = position.coords.longitude;
+                
+                // Simulate reverse geocoding (in real app, use a service like Google Maps API)
+                getReverseGeocode(lat, lon)
+                    .then(city => {
+                        userLocation = {
+                            city: city,
+                            lat: lat,
+                            lon: lon
+                        };
+                        
+                        document.getElementById('location-input').value = city;
+                        document.getElementById('detect-location').innerHTML = '<i class="fas fa-map-marker-alt"></i>';
+                        
+                        // Fetch weather with new location
+                        fetchWeather();
+                        
+                        showAlert('Location detected successfully', 'success');
+                    })
+                    .catch(error => {
+                        document.getElementById('detect-location').innerHTML = '<i class="fas fa-map-marker-alt"></i>';
+                        showAlert('Could not determine city name', 'error');
+                    });
+            },
+            error => {
+                document.getElementById('detect-location').innerHTML = '<i class="fas fa-map-marker-alt"></i>';
+                
+                let errorMessage = 'Unable to retrieve your location';
+                if (error.code === 1) {
+                    errorMessage = 'Location access denied. Please check your browser settings.';
+                }
+                
+                showAlert(errorMessage, 'error');
+            }
+        );
+    } else {
+        showAlert('Geolocation is not supported by your browser', 'error');
+    }
+}
+
+// Function to simulate reverse geocoding
+function getReverseGeocode(lat, lon) {
+    return new Promise((resolve, reject) => {
+        // In a real app, you would make an API call to a geocoding service
+        // For demo purposes, we'll just return a city based on rough coordinates
+        
+        setTimeout(() => {
+            // Very rough approximation for demo purposes
+            if (lat > 40 && lat < 50 && lon > -80 && lon < -70) {
+                resolve('New York');
+            } else if (lat > 30 && lat < 40 && lon > -125 && lon < -115) {
+                resolve('Los Angeles');
+            } else if (lat > 35 && lat < 45 && lon > -5 && lon < 5) {
+                resolve('Paris');
+            } else if (lat > 50 && lat < 55 && lon > -1 && lon < 1) {
+                resolve('London');
+            } else if (lat > 35 && lat < 36 && lon > 139 && lon < 140) {
+                resolve('Tokyo');
+            } else if (lat > -35 && lat < -33 && lon > 150 && lon < 152) {
+                resolve('Sydney');
+            } else {
+                // Default case for unknown locations
+                resolve(`City (${lat.toFixed(2)}, ${lon.toFixed(2)})`);
+            }
+        }, 1000);
+    });
+}
+
 // Detect network status changes
 window.addEventListener('online', () => {
     showAlert('You are back online. Syncing calendars...', 'info');
@@ -1680,6 +1990,9 @@ function initializeApp() {
     if (events.length === 0) {
         loadSampleEvents();
     }
+    
+    // Initialize weather and clock
+    initializeWeatherAndClock();
     
     // Set up periodic sync if online
     if (navigator.onLine) {
