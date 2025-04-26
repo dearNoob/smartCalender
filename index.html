@@ -7,7 +7,7 @@
     <link rel="stylesheet" href="styles.css">
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
 </head>
-<body>
+<body class="theme-default">
     <div class="app-container">
         <aside class="sidebar">
             <div class="sidebar-header">
@@ -115,7 +115,15 @@
                         <i class="fas fa-cloud-sun"></i>
                     </div>
                     <div class="weather-info">
-                        <div class="weather-location">Loading location...</div>
+                        <div class="weather-location-container">
+                            <div class="weather-location" id="weather-location">Loading location...</div>
+                            <div class="weather-location-edit" id="weather-location-edit">
+                                <input type="text" class="weather-location-input" id="weather-location-input" placeholder="Enter city name">
+                                <button class="weather-location-submit" id="weather-location-submit">
+                                    <i class="fas fa-check"></i>
+                                </button>
+                            </div>
+                        </div>
                         <div class="weather-temp">--°C</div>
                         <div class="weather-desc">Fetching weather...</div>
                     </div>
@@ -427,6 +435,84 @@
                         <label class="unit-option">
                             <input type="radio" name="weather-unit" value="imperial"> Fahrenheit (°F)
                         </label>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Personalized Themes Section -->
+            <div class="account-section" id="theme-settings">
+                <div class="account-section-title">Personalized Themes</div>
+                <div class="form-group">
+                    <label>Color Theme</label>
+                    <div class="theme-gallery" id="theme-gallery">
+                        <div class="theme-item selected" data-theme="theme-default">
+                            <div class="theme-preview" style="background: linear-gradient(to right, #3174ad, #5a9bd5);"></div>
+                            <div class="theme-name">Default</div>
+                        </div>
+                        <div class="theme-item" data-theme="theme-ocean">
+                            <div class="theme-preview" style="background: linear-gradient(to right, #1a6985, #2e98b7);"></div>
+                            <div class="theme-name">Ocean</div>
+                        </div>
+                        <div class="theme-item" data-theme="theme-forest">
+                            <div class="theme-preview" style="background: linear-gradient(to right, #2e7d32, #4caf50);"></div>
+                            <div class="theme-name">Forest</div>
+                        </div>
+                        <div class="theme-item" data-theme="theme-sunset">
+                            <div class="theme-preview" style="background: linear-gradient(to right, #e64a19, #ff7043);"></div>
+                            <div class="theme-name">Sunset</div>
+                        </div>
+                        <div class="theme-item" data-theme="theme-violet">
+                            <div class="theme-preview" style="background: linear-gradient(to right, #6a1b9a, #9c27b0);"></div>
+                            <div class="theme-name">Violet</div>
+                        </div>
+                        <div class="theme-item" data-theme="theme-midnight">
+                            <div class="theme-preview" style="background: linear-gradient(to right, #263238, #455a64);"></div>
+                            <div class="theme-name">Midnight</div>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label>Background Image</label>
+                    <div class="background-gallery" id="background-gallery">
+                        <div class="background-item selected" data-bg="none">
+                            <div class="background-preview" style="background-color: #f5f7fa;"></div>
+                        </div>
+                        <div class="background-item" data-bg="bg-mountains">
+                            <img class="background-preview" src="https://source.unsplash.com/featured/300x200?mountains" alt="Mountains">
+                        </div>
+                        <div class="background-item" data-bg="bg-beach">
+                            <img class="background-preview" src="https://source.unsplash.com/featured/300x200?beach" alt="Beach">
+                        </div>
+                        <div class="background-item" data-bg="bg-forest">
+                            <img class="background-preview" src="https://source.unsplash.com/featured/300x200?forest" alt="Forest">
+                        </div>
+                        <div class="background-item" data-bg="bg-city">
+                            <img class="background-preview" src="https://source.unsplash.com/featured/300x200?city" alt="City">
+                        </div>
+                        <div class="background-item" data-bg="bg-abstract">
+                            <img class="background-preview" src="https://source.unsplash.com/featured/300x200?abstract" alt="Abstract">
+                        </div>
+                        <div class="background-item" data-bg="bg-pattern">
+                            <img class="background-preview" src="https://source.unsplash.com/featured/300x200?pattern" alt="Pattern">
+                        </div>
+                        <div class="background-item" data-bg="bg-space">
+                            <img class="background-preview" src="https://source.unsplash.com/featured/300x200?space" alt="Space">
+                        </div>
+                        <div class="background-item" data-bg="bg-ocean">
+                            <img class="background-preview" src="https://source.unsplash.com/featured/300x200?ocean" alt="Ocean">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <div class="custom-background-container">
+                        <label class="custom-background-label">Custom Background</label>
+                        <input type="file" class="custom-background-input" id="custom-background-input" accept="image/*">
+                        <button class="custom-background-button" id="custom-background-button">Choose Image</button>
+                        <div class="custom-background-preview" id="custom-background-preview">
+                            No image selected
+                        </div>
                     </div>
                 </div>
             </div>

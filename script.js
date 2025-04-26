@@ -1,290 +1,217 @@
-// Global variables
-let currentDate = new Date();
-let currentView = 'week';
-let events = []; // Will store all events
-let editingEventId = null; // To track which event is being edited
-let selectedColor = 1; // Default color for new events
-let darkMode = false; // Track theme state
-let calendarSources = [
-    { id: 'work', name: 'Work', color: 'event-color-1', visible: true },
-    { id: 'personal', name: 'Personal', color: 'event-color-2', visible: true },
-    { id: 'family', name: 'Family', color: 'event-color-3', visible: true }
-];
-let draggedEvent = null; // Track event being dragged
-let userLocation = { 
-    city: 'London', 
-    lat: 51.5074, 
-    lon: -0.1278 
-};
-let weatherUnit = 'metric';
-let selectedTimezone = 'local';
-let clockInterval;
-let userSettings = {
-    defaultView: 'week',
-    weekStartsOn: 0, // 0 = Sunday, 1 = Monday
-    timeFormat: '12', // 12 or 24 hour
-    showWeekNumbers: false,
-    defaultDarkMode: false,
-    defaultReminder: '30',
-    location: { city: 'London', lat: 51.5074, lon: -0.1278 },
-    weatherUnit: 'metric',
-    defaultTimezone: 'local'
-};
-
-// Initialize calendar components
-document.addEventListener('DOMContentLoaded', function() {
-    loadSampleEvents();
-    setupEventListeners();
-    initializeCalendarViews();
-    updateCalendarView();
-    renderMiniCalendar();
-    initializeSearchFunction();
-    loadUserSettings();
-});
-
-// Load sample events for demonstration
-function loadSampleEvents() {
-    const today = new Date();
-    const tomorrow = new Date(today);
-    tomorrow.setDate(tomorrow.getDate() + 1);
-    const nextWeek = new Date(today);
-    nextWeek.setDate(nextWeek.getDate() + 7);
+// Simulated weather data as fallback for when API fails
+function simulateWeatherData(location, unit) {
+    // Determine season for more realistic temperatures
+    const now = new Date();
+    const month = now.getMonth(); // 0-11
+    let season;
     
-    events = [
-        {
-            id: 1,
-            title: 'Team Meeting',
-            startDate: new Date(today.getFullYear(), today.getMonth(), today.getDate(), 10, 0),
-            endDate: new Date(today.getFullYear(), today.getMonth(), today.getDate(), 11, 30),
-            color: 1,
-            calendar: 'work',
-            location: 'Conference Room B',
-            description: 'Weekly team sync meeting',
-            guests: 'team@example.com',
-            notification: 15,
-            repeat: 'weekly'
+    // Northern hemisphere seasons
+    if (month >= 2 && month <= 4) season = 'spring';
+    else if (month >= 5 && month <= 7) season = 'summer';
+    else if (month >= 8 && month <= 10) season = 'autumn';
+    else season = 'winter';
+    
+    // Adjust for southern hemisphere if applicable
+    const isNorthern = location.lat >= 0;
+    if (!isNorthern) {
+        if (season === 'winter') season = 'summer';
+        else if (season === 'summer') season = 'winter';
+        else if (season === 'spring') season = 'autumn';
+        else if (season === 'autumn') season = 'spring';
+    }
+    
+    // Base temperatures by climate zone and season
+    const temperatures = {
+        'London': { 
+            winter: { metric: 5, imperial: 41 },
+            spring: { metric: 12, imperial: 54 },
+            summer: { metric: 18, imperial: 64 },
+            autumn: { metric: 10, imperial: 50 }
         },
-        {
-            id: 2,
-            title: 'Lunch with Sarah',
-            startDate: new Date(today.getFullYear(), today.getMonth(), today.getDate(), 12, 30),
-            endDate: new Date(today.getFullYear(), today.getMonth(), today.getDate(), 13, 30),
-            color: 2,
-            calendar: 'personal',
-            location: 'Cafe Bistro',
-            description: 'Catch up lunch',
-            guests: 'sarah@example.com',
-            notification: 30,
-            repeat: 'none'
+        'New York': {
+            winter: { metric: 1, imperial: 34 },
+            spring: { metric: 15, imperial: 59 },
+            summer: { metric: 25, imperial: 77 },
+            autumn: { metric: 14, imperial: 57 }
         },
-        {
-            id: 3,
-            title: 'Project Deadline',
-            startDate: new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate(), 17, 0),
-            endDate: new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate(), 17, 30),
-            color: 1,
-            calendar: 'work',
-            location: '',
-            description: 'Submit final project deliverables',
-            guests: '',
-            notification: 1440,
-            repeat: 'none'
+        'Tokyo': {
+            winter: { metric: 6, imperial: 43 },
+            spring: { metric: 15, imperial: 59 },
+            summer: { metric: 26, imperial: 79 },
+            autumn: { metric: 17, imperial: 63 }
         },
-        {
-            id: 4,
-            title: 'Family Dinner',
-            startDate: new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate(), 19, 0),
-            endDate: new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate(), 21, 0),
-            color: 3,
-            calendar: 'family',
-            location: 'Home',
-            description: 'Monthly family dinner',
-            guests: 'family@example.com',
-            notification: 60,
-            repeat: 'monthly'
+        'Sydney': {
+            winter: { metric: 13, imperial: 55 },
+            spring: { metric: 18, imperial: 64 },
+            summer: { metric: 25, imperial: 77 },
+            autumn: { metric: 20, imperial: 68 }
         },
-        {
-            id: 5,
-            title: 'Dentist Appointment',
-            startDate: new Date(nextWeek.getFullYear(), nextWeek.getMonth(), nextWeek.getDate(), 14, 0),
-            endDate: new Date(nextWeek.getFullYear(), nextWeek.getMonth(), nextWeek.getDate(), 15, 0),
-            color: 2,
-            calendar: 'personal',
-            location: 'Dental Clinic',
-            description: 'Regular checkup',
-            guests: '',
-            notification: 60,
-            repeat: 'none'
-        },
-        {
-            id: 6,
-            title: 'Gym Session',
-            startDate: new Date(today.getFullYear(), today.getMonth(), today.getDate(), 18, 0),
-            endDate: new Date(today.getFullYear(), today.getMonth(), today.getDate(), 19, 0),
-            color: 2,
-            calendar: 'personal',
-            location: 'Fitness Center',
-            description: 'Cardio and weights workout',
-            guests: '',
-            notification: 30,
-            repeat: 'daily'
-        },
-        {
-            id: 7,
-            title: 'Client Call',
-            startDate: new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate(), 14, 0),
-            endDate: new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate(), 15, 0),
-            color: 1,
-            calendar: 'work',
-            location: 'Zoom Meeting',
-            description: 'Discuss project requirements',
-            guests: 'client@example.com',
-            notification: 15,
-            repeat: 'none'
+        'Paris': {
+            winter: { metric: 4, imperial: 39 },
+            spring: { metric: 13, imperial: 55 },
+            summer: { metric: 20, imperial: 68 },
+            autumn: { metric: 11, imperial: 52 }
         }
-    ];
+    };
+    
+    // Weather descriptions weighted by season
+    const descriptions = {
+        winter: [
+            'Clear sky', 'Few clouds', 'Scattered clouds', 
+            'Snow', 'Snow', 'Light snow', 'Freezing rain',
+            'Broken clouds', 'Mist', 'Fog'
+        ],
+        spring: [
+            'Clear sky', 'Few clouds', 'Scattered clouds', 
+            'Broken clouds', 'Shower rain', 'Light rain', 
+            'Moderate rain', 'Mist'
+        ],
+        summer: [
+            'Clear sky', 'Clear sky', 'Few clouds', 
+            'Scattered clouds', 'Shower rain', 'Rain', 
+            'Thunderstorm', 'Hot'
+        ],
+        autumn: [
+            'Clear sky', 'Few clouds', 'Scattered clouds', 
+            'Broken clouds', 'Shower rain', 'Rain', 
+            'Mist', 'Fog', 'Moderate rain'
+        ]
+    };
+    
+    // Font Awesome icon mapping
+    const icons = {
+        'Clear sky': 'fa-sun',
+        'Few clouds': 'fa-cloud-sun',
+        'Scattered clouds': 'fa-cloud',
+        'Broken clouds': 'fa-cloud',
+        'Shower rain': 'fa-cloud-showers-heavy',
+        'Light rain': 'fa-cloud-rain',
+        'Moderate rain': 'fa-cloud-rain',
+        'Rain': 'fa-cloud-rain',
+        'Thunderstorm': 'fa-bolt',
+        'Snow': 'fa-snowflake',
+        'Light snow': 'fa-snowflake',
+        'Mist': 'fa-smog',
+        'Fog': 'fa-smog',
+        'Hot': 'fa-temperature-high',
+        'Freezing rain': 'fa-icicles'
+    };
+    
+    // Get temperature for location or generate reasonable value if not found
+    let temp;
+    if (temperatures[location.city] && temperatures[location.city][season]) {
+        temp = temperatures[location.city][season][unit];
+        // Add small random variation
+        temp += Math.floor(Math.random() * 5) - 2;
+    } else {
+        // Generate reasonable temperatures based on season and hemisphere
+        if (season === 'summer') {
+            temp = Math.floor(Math.random() * 10) + (unit === 'metric' ? 20 : 68);
+        } else if (season === 'winter') {
+            temp = Math.floor(Math.random() * 10) + (unit === 'metric' ? 0 : 32);
+        } else {
+            temp = Math.floor(Math.random() * 10) + (unit === 'metric' ? 10 : 50);
+        }
+    }
+    
+    // Get weather description based on season
+    const seasonalDescriptions = descriptions[season] || descriptions.spring;
+    const description = seasonalDescriptions[Math.floor(Math.random() * seasonalDescriptions.length)];
+    
+    // Match OpenWeatherMap API format for compatibility
+    return {
+        name: location.city,
+        main: {
+            temp: temp
+        },
+        weather: [{
+            description: description,
+            icon: icons[description] || 'fa-cloud'
+        }],
+        coord: {
+            lat: location.lat || 0,
+            lon: location.lon || 0
+        }
+    };
 }
 
-// Setup all event listeners
-function setupEventListeners() {
-    // View switching
-    document.querySelectorAll('.view-btn').forEach(button => {
-        button.addEventListener('click', function() {
-            document.querySelectorAll('.view-btn').forEach(btn => btn.classList.remove('active'));
-            this.classList.add('active');
-            currentView = this.getAttribute('data-view');
-            updateCalendarView();
-        });
+// Initialize weather location edit functionality
+function initializeWeatherLocationEdit() {
+    const locationElement = document.getElementById('weather-location');
+    const locationEditContainer = document.getElementById('weather-location-edit');
+    const locationInput = document.getElementById('weather-location-input');
+    const locationSubmit = document.getElementById('weather-location-submit');
+    
+    if (!locationElement || !locationEditContainer || !locationInput || !locationSubmit) {
+        console.error('Weather location edit elements not found');
+        return;
+    }
+    
+    // Show edit input when clicking on location
+    locationElement.addEventListener('click', function() {
+        // Pre-fill input with current location
+        locationInput.value = userLocation.city;
+        // Show edit container
+        locationEditContainer.classList.add('active');
+        // Focus on input
+        locationInput.focus();
     });
     
-    // Date navigation
-    document.getElementById('prev-btn').addEventListener('click', navigatePrevious);
-    document.getElementById('next-btn').addEventListener('click', navigateNext);
-    document.getElementById('today-btn').addEventListener('click', navigateToday);
+    // Handle location submission
+    locationSubmit.addEventListener('click', submitWeatherLocation);
     
-    // Mini calendar navigation
-    document.getElementById('prev-mini-month').addEventListener('click', () => {
-        const miniDate = new Date(currentDate);
-        miniDate.setMonth(miniDate.getMonth() - 1);
-        renderMiniCalendar(miniDate);
-    });
-    
-    document.getElementById('next-mini-month').addEventListener('click', () => {
-        const miniDate = new Date(currentDate);
-        miniDate.setMonth(miniDate.getMonth() + 1);
-        renderMiniCalendar(miniDate);
-    });
-    
-    // Event modal
-    document.getElementById('add-event-btn').addEventListener('click', openAddEventModal);
-    document.getElementById('close-modal').addEventListener('click', closeEventModal);
-    document.getElementById('cancel-event').addEventListener('click', closeEventModal);
-    document.getElementById('save-event').addEventListener('click', saveEvent);
-    document.getElementById('delete-event').addEventListener('click', deleteEvent);
-    
-    // Color selection
-    document.querySelectorAll('.color-option').forEach(option => {
-        option.addEventListener('click', function() {
-            document.querySelectorAll('.color-option').forEach(opt => opt.classList.remove('selected'));
-            this.classList.add('selected');
-            selectedColor = this.getAttribute('data-color');
-        });
-    });
-    
-    // Theme toggle
-    document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
-    
-    // Sidebar toggle for mobile
-    document.getElementById('show-sidebar').addEventListener('click', () => {
-        document.querySelector('.sidebar').classList.add('show');
-    });
-    
-    document.getElementById('close-sidebar').addEventListener('click', () => {
-        document.querySelector('.sidebar').classList.remove('show');
-    });
-    
-    // Calendar visibility toggle
-    document.querySelectorAll('.calendar-visibility').forEach(toggle => {
-        toggle.addEventListener('click', function() {
-            const calendarItem = this.closest('.calendar-item');
-            const calendarName = calendarItem.querySelector('.calendar-name').textContent.toLowerCase();
-            
-            // Find the calendar in our sources
-            const calendarSource = calendarSources.find(cal => cal.name.toLowerCase() === calendarName);
-            if (calendarSource) {
-                calendarSource.visible = !calendarSource.visible;
-                
-                // Update the icon
-                if (calendarSource.visible) {
-                    this.innerHTML = '<i class="fas fa-eye"></i>';
-                } else {
-                    this.innerHTML = '<i class="fas fa-eye-slash"></i>';
-                }
-                
-                // Refresh the calendar view
-                updateCalendarView();
-            }
-        });
-    });
-    
-    // Add calendar button
-    document.getElementById('add-calendar-btn').addEventListener('click', openAddCalendarModal);
-    document.getElementById('close-calendar-modal').addEventListener('click', closeCalendarModal);
-    document.getElementById('cancel-calendar').addEventListener('click', closeCalendarModal);
-    document.getElementById('save-calendar').addEventListener('click', saveCalendar);
-    
-    // Calendar type change
-    document.getElementById('calendar-type').addEventListener('change', function() {
-        const externalFields = document.getElementById('external-calendar-fields');
-        if (this.value !== 'local') {
-            externalFields.classList.remove('hidden');
-        } else {
-            externalFields.classList.add('hidden');
+    // Allow pressing Enter to submit
+    locationInput.addEventListener('keypress', function(e) {
+        if (e.key === 'Enter') {
+            submitWeatherLocation();
         }
     });
     
-    // Account settings
-    document.getElementById('account-btn').addEventListener('click', openAccountModal);
-    document.getElementById('close-account-modal').addEventListener('click', closeAccountModal);
-    document.getElementById('close-settings').addEventListener('click', closeAccountModal);
-    document.getElementById('save-settings').addEventListener('click', saveUserSettings);
-    
-    // Connect service buttons
-    document.querySelectorAll('.connect-btn').forEach(button => {
-        button.addEventListener('click', function() {
-            const service = this.getAttribute('data-service');
-            connectCalendarService(service);
-        });
-    });
-    
-    // Dark mode preference
-    document.getElementById('dark-mode-pref').addEventListener('change', function() {
-        if (this.checked) {
-            if (!darkMode) toggleTheme();
-        } else {
-            if (darkMode) toggleTheme();
+    // Hide edit container when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('.weather-location-container') && 
+            locationEditContainer.classList.contains('active')) {
+            locationEditContainer.classList.remove('active');
         }
     });
-    
-    // Import/Export buttons
-    document.getElementById('import-calendar-btn').addEventListener('click', importCalendar);
-    document.getElementById('export-calendar-btn').addEventListener('click', exportCalendar);
-    document.getElementById('calendar-settings-btn').addEventListener('click', openAccountModal);
-    
-    // Weather and clock event listeners
-    document.getElementById('refresh-weather').addEventListener('click', fetchWeather);
-    document.getElementById('timezone-select').addEventListener('change', function() {
-        selectedTimezone = this.value;
-        updateClock();
-        localStorage.setItem('oneCalendarTimezone', selectedTimezone);
-    });
-
-    document.getElementById('detect-location').addEventListener('click', detectUserLocation);
 }
 
-// User settings functions
-function loadUserSettings() {
-    // In a real app, this would load from localStorage or a server
+// Submit location and update weather
+function submitWeatherLocation() {
+    const locationInput = document.getElementById('weather-location-input');
+    const locationEditContainer = document.getElementById('weather-location-edit');
+    const newLocation = locationInput.value.trim();
+    
+    if (newLocation) {
+        // Update user location
+        userLocation.city = newLocation;
+        // Reset coordinates to ensure city name is used in API call
+        userLocation.lat = null;
+        userLocation.lon = null;
+        
+        // Update display
+        document.getElementById('weather-location').textContent = newLocation;
+        
+        // Hide edit container
+        locationEditContainer.classList.remove('active');
+        
+        // Fetch weather with the new location
+        fetchWeather();
+        
+        // Save to user settings
+        userSettings.location = userLocation;
+        localStorage.setItem('oneCalendarSettings', JSON.stringify(userSettings));
+        
+        // Show confirmation
+        showAlert(`Weather location updated to ${newLocation}`, 'success');
+    } else {
+        showAlert('Please enter a valid location', 'error');
+    }
+}
+
+// Initialize the app fully with local storage support
+function initializeApp() {
+    // Load user settings
     const storedSettings = localStorage.getItem('oneCalendarSettings');
     if (storedSettings) {
         try {
@@ -294,381 +221,206 @@ function loadUserSettings() {
         }
     }
     
-    // Apply settings
-    applyUserSettings();
-}
-
-function applyUserSettings() {
-    // Apply dark mode if set
+    // Apply dark mode if set in settings
     if (userSettings.defaultDarkMode && !darkMode) {
         toggleTheme();
     }
     
-    // Set the dark mode checkbox based on current state
-    document.getElementById('dark-mode-pref').checked = darkMode;
+    // Load previously saved calendars
+    loadCalendarSourcesFromLocalStorage();
     
-    // Set other form fields to match settings
-    document.getElementById('default-view').value = userSettings.defaultView;
-    document.getElementById('week-starts').value = userSettings.weekStartsOn;
-    document.getElementById('time-format').value = userSettings.timeFormat;
-    document.getElementById('show-week-numbers').checked = userSettings.showWeekNumbers;
-    document.getElementById('default-reminder').value = userSettings.defaultReminder;
+    // Load previously saved events
+    loadEventsFromLocalStorage();
     
-    // Set weather unit radio button
-    document.querySelector(`input[name="weather-unit"][value="${userSettings.weatherUnit}"]`).checked = true;
-    weatherUnit = userSettings.weatherUnit;
-
-    // Set location input
-    document.getElementById('location-input').value = userSettings.location.city;
-    userLocation = userSettings.location;
-
-    // Set timezone
-    document.getElementById('default-timezone').value = userSettings.defaultTimezone;
-    document.getElementById('timezone-select').value = userSettings.defaultTimezone;
-    selectedTimezone = userSettings.defaultTimezone;
+    // If no events were loaded, add sample events
+    if (events.length === 0) {
+        loadSampleEvents();
+    }
     
-    // Apply week start setting
-    updateCalendarView();
-}
-
-function saveUserSettings() {
-    weatherUnit = document.querySelector('input[name="weather-unit"]:checked').value;
-    const defaultTimezone = document.getElementById('default-timezone').value;
+    // Initialize weather and clock
+    initializeWeatherAndClock();
     
-    userSettings = {
-        defaultView: document.getElementById('default-view').value,
-        weekStartsOn: parseInt(document.getElementById('week-starts').value),
-        timeFormat: document.getElementById('time-format').value,
-        showWeekNumbers: document.getElementById('show-week-numbers').checked,
-        defaultDarkMode: document.getElementById('dark-mode-pref').checked,
-        defaultReminder: document.getElementById('default-reminder').value,
-        location: userLocation,
-        weatherUnit: weatherUnit,
-        defaultTimezone: defaultTimezone
-    };
+    // Initialize weather location edit functionality
+    initializeWeatherLocationEdit();
     
-    // Save to localStorage
-    localStorage.setItem('oneCalendarSettings', JSON.stringify(userSettings));
+    // Add current time indicator to day and week views
+    initializeCurrentTimeIndicator();
     
-    // Apply the settings
-    applyUserSettings();
+    // Setup real-time event notifications
+    setupEventNotifications();
     
-    // Close modal and show confirmation
-    closeAccountModal();
-    showAlert('Settings saved successfully', 'success');
-}
-
-// Initialize search functionality
-function initializeSearchFunction() {
-    const searchInput = document.getElementById('search-input');
-    const searchResults = document.getElementById('search-results');
+    // Set up periodic sync if online
+    if (navigator.onLine) {
+        // Sync every 5 minutes
+        setInterval(syncWithOnlineCalendars, 5 * 60 * 1000);
+    }
     
-    searchInput.addEventListener('focus', () => {
-        searchResults.style.display = 'block';
+    // Check if we need to save events
+    window.addEventListener('beforeunload', function() {
+        saveEventsToLocalStorage();
+        saveCalendarSourcesToLocalStorage();
     });
+}
+
+// Add current time indicator to day and week views
+function initializeCurrentTimeIndicator() {
+    // Create the indicator
+    function createTimeIndicator() {
+        const now = new Date();
+        const hours = now.getHours();
+        const minutes = now.getMinutes();
+        
+        // Calculate position based on time
+        const timePercentage = (hours + minutes/60) / 24 * 100;
+        
+        // Remove any existing indicators
+        document.querySelectorAll('.current-time-indicator').forEach(el => el.remove());
+        
+        // Add to day view
+        const dayView = document.querySelector('.day-view .time-slots');
+        if (dayView && currentView === 'day') {
+            const indicator = document.createElement('div');
+            indicator.className = 'current-time-indicator';
+            indicator.style.top = `${timePercentage}%`;
+            dayView.appendChild(indicator);
+        }
+        
+        // Add to week view
+        const weekView = document.querySelector('.week-view .week-grid');
+        if (weekView && currentView === 'week') {
+            const todayColumn = Array.from(weekView.querySelectorAll('.week-column')).find(col => {
+                const dateStr = col.getAttribute('data-date');
+                const colDate = parseDate(dateStr);
+                return isSameDay(colDate, now);
+            });
+            
+            if (todayColumn) {
+                const indicator = document.createElement('div');
+                indicator.className = 'current-time-indicator';
+                indicator.style.top = `${timePercentage}%`;
+                todayColumn.appendChild(indicator);
+            }
+        }
+    }
     
-    searchInput.addEventListener('blur', () => {
-        // Delay hiding to allow clicks on results
+    // Create initially and update every minute
+    createTimeIndicator();
+    setInterval(createTimeIndicator, 60000);
+}
+
+// Setup real-time event notifications
+function setupEventNotifications() {
+    // Check for upcoming events every minute
+    setInterval(() => {
+        const now = new Date();
+        
+        // Check all events
+        events.forEach(event => {
+            // Skip if no notification is set
+            if (event.notification === 'none') return;
+            
+            // Calculate notification time
+            const notificationTime = new Date(event.startDate);
+            notificationTime.setMinutes(notificationTime.getMinutes() - parseInt(event.notification));
+            
+            // Check if it's time to notify
+            const timeDiff = Math.abs(now - notificationTime);
+            if (timeDiff < 60000) { // Within the last minute
+                showEventNotification(event);
+            }
+        });
+    }, 60000);
+}
+
+// Show event notification
+function showEventNotification(event) {
+    // Check if browser supports notifications
+    if (!("Notification" in window)) {
+        console.log("This browser does not support desktop notifications");
+        return;
+    }
+    
+    // Show notification if permission is granted
+    if (Notification.permission === "granted") {
+        const notification = new Notification("Event Reminder", {
+            body: `${event.title} - Starts at ${formatTime(event.startDate)}`,
+            icon: "/favicon.ico" // You should add a favicon for your app
+        });
+        
+        // Close notification after 10 seconds
         setTimeout(() => {
-            searchResults.style.display = 'none';
-        }, 200);
-    });
-    
-    searchInput.addEventListener('input', function() {
-        const query = this.value.toLowerCase().trim();
-        searchResults.innerHTML = '';
-        
-        if (query.length < 2) {
-            searchResults.style.display = 'none';
-            return;
-        }
-        
-        const matchingEvents = events.filter(event => 
-            event.title.toLowerCase().includes(query) || 
-            (event.description && event.description.toLowerCase().includes(query)) ||
-            (event.location && event.location.toLowerCase().includes(query))
-        );
-        
-        if (matchingEvents.length === 0) {
-            searchResults.innerHTML = '<div class="search-result-item">No events found</div>';
-        } else {
-            matchingEvents.forEach(event => {
-                const resultItem = document.createElement('div');
-                resultItem.className = 'search-result-item';
-                
-                const resultTitle = document.createElement('div');
-                resultTitle.className = 'search-result-title';
-                resultTitle.textContent = event.title;
-                
-                const resultDate = document.createElement('div');
-                resultDate.className = 'search-result-date';
-                resultDate.textContent = `${formatFullDate(event.startDate)} at ${formatTime(event.startDate)}`;
-                
-                resultItem.appendChild(resultTitle);
-                resultItem.appendChild(resultDate);
-                
-                resultItem.addEventListener('click', () => {
-                    // Navigate to the event's date and open it
-                    currentDate = new Date(event.startDate);
-                    updateCalendarView();
-                    openEditEventModal(event.id);
-                });
-                
-                searchResults.appendChild(resultItem);
-            });
-        }
-        
-        searchResults.style.display = 'block';
-    });
-}
-
-// Calendar service connection
-function connectCalendarService(service) {
-    // In a real app, this would open OAuth flow
-    // For demo purposes, we'll just simulate success
-    
-    const button = document.querySelector(`.connect-btn[data-service="${service}"]`);
-    const statusElement = button.closest('.service-connection').querySelector('.service-status');
-    
-    // Simulate connection process
-    button.textContent = 'Connecting...';
-    button.disabled = true;
-    
-    setTimeout(() => {
-        statusElement.textContent = 'Connected';
-        button.textContent = 'Disconnect';
-        button.classList.remove('connect-btn');
-        button.classList.add('disconnect-btn');
-        button.disabled = false;
-        
-        showAlert(`Successfully connected to ${service.charAt(0).toUpperCase() + service.slice(1)} Calendar`, 'success');
-        
-        // Add a new calendar source for this service
-        const newCalendarId = `${service}-calendar`;
-        if (!calendarSources.some(cal => cal.id === newCalendarId)) {
-            calendarSources.push({
-                id: newCalendarId,
-                name: `${service.charAt(0).toUpperCase() + service.slice(1)} Calendar`,
-                color: `event-color-${Math.floor(Math.random() * 5) + 1}`,
-                visible: true
-            });
-            
-            // Update sidebar calendar list
-            updateCalendarList();
-        }
-    }, 1500);
-}
-
-// Update the sidebar calendar list
-function updateCalendarList() {
-    const calendarList = document.querySelector('.calendar-list');
-    const addButton = document.querySelector('.add-calendar-btn');
-    
-    // Remove all calendar items except the add button
-    const calendarItems = calendarList.querySelectorAll('.calendar-item');
-    calendarItems.forEach(item => {
-        calendarList.removeChild(item);
-    });
-    
-    // Add calendar items from sources
-    calendarSources.forEach(calendar => {
-        const calendarItem = document.createElement('div');
-        calendarItem.className = 'calendar-item';
-        
-        const calendarColor = document.createElement('div');
-        calendarColor.className = 'calendar-color';
-        calendarColor.style.backgroundColor = `var(--${calendar.color.replace('event-color', 'event-color')})`;
-        
-        const calendarName = document.createElement('div');
-        calendarName.className = 'calendar-name';
-        calendarName.textContent = calendar.name;
-        
-        const calendarVisibility = document.createElement('div');
-        calendarVisibility.className = 'calendar-visibility';
-        calendarVisibility.innerHTML = calendar.visible ? 
-            '<i class="fas fa-eye"></i>' : 
-            '<i class="fas fa-eye-slash"></i>';
-        
-        calendarItem.appendChild(calendarColor);
-        calendarItem.appendChild(calendarName);
-        calendarItem.appendChild(calendarVisibility);
-        
-        // Add click handler for visibility toggle
-        calendarVisibility.addEventListener('click', function() {
-            calendar.visible = !calendar.visible;
-            
-            if (calendar.visible) {
-                this.innerHTML = '<i class="fas fa-eye"></i>';
-            } else {
-                this.innerHTML = '<i class="fas fa-eye-slash"></i>';
-            }
-            
-            updateCalendarView();
-        });
-        
-        // Insert before the add button
-        calendarList.insertBefore(calendarItem, addButton);
-    });
-}
-
-// Import/Export functions
-function importCalendar() {
-    // In a real app, this would open a file picker
-    // For demo purposes, we'll just show a confirmation
-    showAlert('Calendar import functionality would open a file picker here', 'info');
-}
-
-function exportCalendar() {
-    // In a real app, this would generate and download an ICS file
-    // For demo purposes, we'll just show a confirmation
-    showAlert('Calendar export functionality would download an ICS file', 'info');
-}
-
-// Initialize calendar views structure
-function initializeCalendarViews() {
-    // Create day view time slots
-    const dayTimeSlots = document.getElementById('day-time-slots');
-    dayTimeSlots.innerHTML = '';
-    
-    for (let hour = 0; hour < 24; hour++) {
-        const timeSlot = document.createElement('div');
-        timeSlot.className = 'time-slot';
-        
-        const timeLabel = document.createElement('div');
-        timeLabel.className = 'time-label';
-        timeLabel.textContent = formatHour(hour);
-        
-        const slotContent = document.createElement('div');
-        slotContent.className = 'slot-content';
-        slotContent.setAttribute('data-hour', hour);
-        
-        // Add drop zone for drag and drop
-        slotContent.addEventListener('dragover', function(e) {
-            e.preventDefault();
-            this.style.backgroundColor = 'rgba(49, 116, 173, 0.1)';
-        });
-        
-        slotContent.addEventListener('dragleave', function() {
-            this.style.backgroundColor = '';
-        });
-        
-        slotContent.addEventListener('drop', function(e) {
-            e.preventDefault();
-            this.style.backgroundColor = '';
-            
-            if (draggedEvent) {
-                const hour = parseInt(this.getAttribute('data-hour'));
-                moveEventToNewTime(draggedEvent, currentDate, hour);
+            notification.close();
+        }, 10000);
+    } else if (Notification.permission !== "denied") {
+        // Request permission if not denied
+        Notification.requestPermission().then(permission => {
+            if (permission === "granted") {
+                showEventNotification(event);
             }
         });
-        
-        timeSlot.appendChild(timeLabel);
-        timeSlot.appendChild(slotContent);
-        dayTimeSlots.appendChild(timeSlot);
     }
     
-    // Create week view headers and columns
-    updateWeekViewStructure();
+    // Also show in-app notification
+    showAlert(`Upcoming event: ${event.title} at ${formatTime(event.startDate)}`, 'info');
 }
 
-function updateWeekViewStructure() {
-    const weekHeader = document.getElementById('week-header');
-    const weekGrid = document.getElementById('week-grid');
-    weekHeader.innerHTML = '';
-    weekGrid.innerHTML = '';
+// Function for offline data support
+function syncWithOnlineCalendars() {
+    // In a real app, this would implement:
+    // 1. Check network status
+    // 2. If online, sync with connected calendar services using their APIs
+    // 3. Handle conflicts between local and remote calendars
+    // 4. Update local storage with synced data
+    console.log('Syncing with online calendars...');
     
-    // Get the start of week based on user settings
-    const startDate = getStartOfWeek(currentDate);
-    
-    for (let i = 0; i < 7; i++) {
-        const date = new Date(startDate);
-        date.setDate(date.getDate() + i);
+    // Simulate sync process
+    const isOnline = navigator.onLine;
+    if (isOnline) {
+        // Only show alert if we have connected calendars
+        const hasConnectedCalendars = calendarSources.some(cal => cal.id.includes('-calendar'));
         
-        const weekday = document.createElement('div');
-        weekday.className = 'weekday';
-        weekday.textContent = formatDayHeader(date);
-        weekHeader.appendChild(weekday);
-        
-        const column = document.createElement('div');
-        column.className = 'week-column';
-        column.setAttribute('data-date', formatDateAttribute(date));
-        
-        // Create time slots inside each column
-        for (let hour = 0; hour < 24; hour++) {
-            const hourSlot = document.createElement('div');
-            hourSlot.className = 'time-slot';
-            hourSlot.style.height = '50px';
-            hourSlot.setAttribute('data-hour', hour);
+        if (hasConnectedCalendars) {
+            showAlert('Syncing calendars...', 'info', 1000); // Short display
             
-            const timeLabel = document.createElement('div');
-            timeLabel.className = 'time-label';
-            timeLabel.style.fontSize = '10px';
-            timeLabel.textContent = i === 0 ? formatHour(hour) : '';
-            
-            const slotContent = document.createElement('div');
-            slotContent.className = 'slot-content';
-            
-            // Add drop zone for drag and drop
-            slotContent.addEventListener('dragover', function(e) {
-                e.preventDefault();
-                this.style.backgroundColor = 'rgba(49, 116, 173, 0.1)';
-            });
-            
-            slotContent.addEventListener('dragleave', function() {
-                this.style.backgroundColor = '';
-            });
-            
-            slotContent.addEventListener('drop', function(e) {
-                e.preventDefault();
-                this.style.backgroundColor = '';
-                
-                if (draggedEvent) {
-                    const dateStr = this.closest('.week-column').getAttribute('data-date');
-                    const hour = parseInt(this.closest('.time-slot').getAttribute('data-hour'));
-                    const newDate = parseDate(dateStr);
-                    moveEventToNewTime(draggedEvent, newDate, hour);
+            // Simulate fetch delay
+            setTimeout(() => {
+                // Only show success message for actual syncs, not automatic background ones
+                if (hasConnectedCalendars) {
+                    showAlert('Calendars synced successfully', 'success');
                 }
-            });
-            
-            hourSlot.appendChild(timeLabel);
-            hourSlot.appendChild(slotContent);
-            column.appendChild(hourSlot);
+            }, 1500);
         }
-        
-        weekGrid.appendChild(column);
     }
 }
 
-// Function to move an event to a new time/date
-function moveEventToNewTime(eventId, newDate, newHour) {
-    const event = events.find(e => e.id === eventId);
-    if (!event) return;
-    
-    // Calculate the duration of the event
-    const duration = event.endDate - event.startDate;
-    
-    // Create new start date
-    const newStartDate = new Date(newDate);
-    newStartDate.setHours(newHour, 0, 0, 0);
-    
-    // Create new end date
-    const newEndDate = new Date(newStartDate.getTime() + duration);
-    
-    // Update the event
-    event.startDate = newStartDate;
-    event.endDate = newEndDate;
-    
-    // Reset draggedEvent
-    draggedEvent = null;
-    
-    // Update the calendar view
-    updateCalendarView();
-    
-    // Show confirmation
-    showAlert('Event moved successfully', 'success');
-}
+// Detect network status changes
+window.addEventListener('online', () => {
+    showAlert('You are back online. Syncing calendars...', 'success');
+    syncWithOnlineCalendars();
+});
 
-// Update the calendar view based on current settings
+window.addEventListener('offline', () => {
+    showAlert('You are now offline. Changes will be saved locally and synced when connectivity returns.', 'info');
+});
+
+// Add CSS animation for alert slide out
+document.addEventListener('DOMContentLoaded', function() {
+    // Add the animation style for alertSlideOut if it doesn't exist yet
+    if (!document.querySelector('style#alert-animations')) {
+        const style = document.createElement('style');
+        style.id = 'alert-animations';
+        style.textContent = `
+            @keyframes alertSlideOut {
+                from { transform: translateX(0); opacity: 1; }
+                to { transform: translateX(100%); opacity: 0; }
+            }
+        `;
+        document.head.appendChild(style);
+    }
+    
+    // Initialize the application
+    initializeApp();
+});// Update the calendar view based on current settings
 function updateCalendarView() {
     updateCurrentDateDisplay();
     
@@ -1505,7 +1257,7 @@ function toggleTheme() {
 }
 
 // Show alert notification
-function showAlert(message, type = 'info') {
+function showAlert(message, type = 'info', duration = 5000) {
     const alertContainer = document.getElementById('alert-container');
     
     const alert = document.createElement('div');
@@ -1518,17 +1270,32 @@ function showAlert(message, type = 'info') {
     closeBtn.className = 'alert-close';
     closeBtn.innerHTML = '&times;';
     closeBtn.addEventListener('click', () => {
-        alert.remove();
+        removeAlert(alert);
     });
     
     alert.appendChild(alertText);
     alert.appendChild(closeBtn);
     alertContainer.appendChild(alert);
     
-    // Automatically remove after 5 seconds
+    // Add entrance animation
+    alert.style.animation = 'alertSlideIn 0.5s ease';
+    
+    // Automatically remove after specified duration
     setTimeout(() => {
-        alert.remove();
-    }, 5000);
+        removeAlert(alert);
+    }, duration);
+    
+    return alert; // Return the alert element for potential future reference
+}
+
+// Helper function to remove alert with animation
+function removeAlert(alert) {
+    alert.style.animation = 'alertSlideOut 0.5s ease';
+    alert.addEventListener('animationend', () => {
+        if (alert.parentNode) {
+            alert.parentNode.removeChild(alert);
+        }
+    });
 }
 
 // Helper Functions
@@ -1616,11 +1383,16 @@ function parseDate(dateString) {
 
 // Local Storage Functions
 function saveEventsToLocalStorage() {
-    localStorage.setItem('oneCalendarEvents', JSON.stringify(events.map(event => ({
-        ...event,
-        startDate: event.startDate.toISOString(),
-        endDate: event.endDate.toISOString()
-    }))));
+    try {
+        localStorage.setItem('oneCalendarEvents', JSON.stringify(events.map(event => ({
+            ...event,
+            startDate: event.startDate.toISOString(),
+            endDate: event.endDate.toISOString()
+        }))));
+    } catch (error) {
+        console.error('Error saving events to localStorage:', error);
+        showAlert('Could not save events to local storage. Your browser storage might be full.', 'error');
+    }
 }
 
 function loadEventsFromLocalStorage() {
@@ -1636,16 +1408,23 @@ function loadEventsFromLocalStorage() {
                 endDate: new Date(event.endDate)
             }));
             
+            console.log(`Loaded ${events.length} events from local storage`);
             updateCalendarView();
             renderMiniCalendar();
         } catch (e) {
             console.error('Error parsing stored events:', e);
+            showAlert('There was an error loading your saved events.', 'error');
         }
     }
 }
 
 function saveCalendarSourcesToLocalStorage() {
-    localStorage.setItem('oneCalendarSources', JSON.stringify(calendarSources));
+    try {
+        localStorage.setItem('oneCalendarSources', JSON.stringify(calendarSources));
+    } catch (error) {
+        console.error('Error saving calendar sources to localStorage:', error);
+        showAlert('Could not save calendar settings to local storage.', 'error');
+    }
 }
 
 function loadCalendarSourcesFromLocalStorage() {
@@ -1656,35 +1435,12 @@ function loadCalendarSourcesFromLocalStorage() {
             updateCalendarList();
         } catch (e) {
             console.error('Error parsing calendar sources:', e);
+            showAlert('There was an error loading your saved calendars.', 'error');
         }
     }
 }
 
-// Function for offline data support
-function syncWithOnlineCalendars() {
-    // In a real app, this would implement:
-    // 1. Check network status
-    // 2. If online, sync with connected calendar services using their APIs
-    // 3. Handle conflicts between local and remote calendars
-    // 4. Update local storage with synced data
-    console.log('Syncing with online calendars...');
-    
-    // Simulate sync process
-    const isOnline = navigator.onLine;
-    if (isOnline) {
-        showAlert('Syncing with online calendars...', 'info');
-        
-        // Simulate fetch delay
-        setTimeout(() => {
-            showAlert('All calendars synced successfully', 'success');
-        }, 1500);
-    } else {
-        showAlert('Unable to sync - you are offline', 'error');
-    }
-}
-
 // Weather and Clock Functions
-// Function to initialize weather and clock features
 function initializeWeatherAndClock() {
     // Load saved timezone if any
     const savedTimezone = localStorage.getItem('oneCalendarTimezone');
@@ -1697,11 +1453,16 @@ function initializeWeatherAndClock() {
     updateClock();
     clockInterval = setInterval(updateClock, 1000);
     
+    // Set the weather location display
+    const locationElement = document.querySelector('.weather-location');
+    if (locationElement && userLocation && userLocation.city) {
+        locationElement.textContent = userLocation.city;
+    }
+    
     // Fetch weather on startup
     fetchWeather();
 }
 
-// Function to update the clock based on selected timezone
 function updateClock() {
     const clockElement = document.getElementById('clock');
     let now;
@@ -1709,7 +1470,18 @@ function updateClock() {
     if (selectedTimezone === 'local') {
         now = new Date();
     } else {
-        now = new Date(new Date().toLocaleString('en-US', { timeZone: selectedTimezone }));
+        // Use Intl.DateTimeFormat to convert time to the selected timezone
+        const formatter = new Intl.DateTimeFormat('en-US', {
+            timeZone: selectedTimezone,
+            hour: 'numeric',
+            minute: 'numeric',
+            second: 'numeric',
+            hour12: userSettings.timeFormat === '12'
+        });
+        
+        const formattedTime = formatter.format(new Date());
+        clockElement.textContent = formattedTime;
+        return; // Skip the rest of the function since we're using the formatter
     }
     
     let hours, minutes, seconds, period;
@@ -1728,7 +1500,6 @@ function updateClock() {
     }
 }
 
-// Function to fetch weather data from OpenWeatherMap API
 function fetchWeather() {
     // Add a spinning effect to the refresh button while loading
     const refreshButton = document.getElementById('refresh-weather');
@@ -1739,31 +1510,39 @@ function fetchWeather() {
     document.querySelector('.weather-temp').textContent = '--°C';
     document.querySelector('.weather-desc').textContent = 'Fetching weather...';
     
-    // API key for OpenWeatherMap (you should use your own API key)
-    // For demo purposes, this is a placeholder
-    const apiKey = 'YOUR_API_KEY';  // Replace with your actual API key
+    // API key for OpenWeatherMap
+    const apiKey = 'd785df9562ae054ceb3b8d3812e0c123';
     
-    // In a real app, you would make an actual API call
-    // For this demo, we'll simulate a response after a delay
-    setTimeout(() => {
-        // This simulates weather data
-        // In a real app, you would fetch from OpenWeatherMap API
-        const weatherData = simulateWeatherData(userLocation, weatherUnit);
-        updateWeatherDisplay(weatherData);
-        
-        // Reset the refresh button
-        refreshButton.style.transform = 'none';
-        refreshButton.disabled = false;
-    }, 1500);
+    // Make the actual API call to OpenWeatherMap
+    let apiUrl;
+    if (userLocation.lat && userLocation.lon) {
+        // If we have coordinates, use them
+        apiUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${userLocation.lat}&lon=${userLocation.lon}&units=${weatherUnit}&appid=${apiKey}`;
+    } else {
+        // Otherwise use city name
+        apiUrl = `https://api.openweathermap.org/data/2.5/weather?q=${encodeURIComponent(userLocation.city)}&units=${weatherUnit}&appid=${apiKey}`;
+    }
     
-    // In a real app, you would use fetch like this:
-    /*
-    fetch(`https://api.openweathermap.org/data/2.5/weather?lat=${userLocation.lat}&lon=${userLocation.lon}&units=${weatherUnit}&appid=${apiKey}`)
-        .then(response => response.json())
+    fetch(apiUrl)
+        .then(response => {
+            if (!response.ok) {
+                throw new Error(`Weather API error: ${response.status}`);
+            }
+            return response.json();
+        })
         .then(data => {
+            // Store latitude and longitude for future use
+            if (data.coord) {
+                userLocation.lat = data.coord.lat;
+                userLocation.lon = data.coord.lon;
+            }
+            
             updateWeatherDisplay(data);
             refreshButton.style.transform = 'none';
             refreshButton.disabled = false;
+            
+            // Show success message
+            showAlert('Weather updated successfully', 'success');
         })
         .catch(error => {
             console.error('Error fetching weather:', error);
@@ -1771,59 +1550,16 @@ function fetchWeather() {
             document.querySelector('.weather-desc').textContent = 'Weather unavailable';
             refreshButton.style.transform = 'none';
             refreshButton.disabled = false;
+            
+            // Show error message
+            showAlert('Could not fetch weather data. Please try again later.', 'error');
+            
+            // Fall back to simulated weather as a backup
+            const weatherData = simulateWeatherData(userLocation, weatherUnit);
+            updateWeatherDisplay(weatherData);
         });
-    */
 }
 
-// Function to simulate weather data (for demo purposes)
-function simulateWeatherData(location, unit) {
-    const temperatures = {
-        'London': { metric: 15, imperial: 59 },
-        'New York': { metric: 18, imperial: 64 },
-        'Tokyo': { metric: 22, imperial: 72 },
-        'Sydney': { metric: 25, imperial: 77 },
-        'Paris': { metric: 17, imperial: 63 }
-    };
-    
-    const descriptions = [
-        'Clear sky', 'Few clouds', 'Scattered clouds', 
-        'Broken clouds', 'Shower rain', 'Rain', 
-        'Thunderstorm', 'Snow', 'Mist'
-    ];
-    
-    const icons = {
-        'Clear sky': 'fa-sun',
-        'Few clouds': 'fa-cloud-sun',
-        'Scattered clouds': 'fa-cloud',
-        'Broken clouds': 'fa-cloud',
-        'Shower rain': 'fa-cloud-showers-heavy',
-        'Rain': 'fa-cloud-rain',
-        'Thunderstorm': 'fa-bolt',
-        'Snow': 'fa-snowflake',
-        'Mist': 'fa-smog'
-    };
-    
-    // Get temperature for location or random if not found
-    const temp = temperatures[location.city] ? 
-        temperatures[location.city][unit] : 
-        Math.floor(Math.random() * 30) + (unit === 'metric' ? 5 : 40);
-    
-    // Get random weather description
-    const description = descriptions[Math.floor(Math.random() * descriptions.length)];
-    
-    return {
-        name: location.city,
-        main: {
-            temp: temp
-        },
-        weather: [{
-            description: description,
-            icon: icons[description] || 'fa-cloud'
-        }]
-    };
-}
-
-// Function to update the weather display with data
 function updateWeatherDisplay(data) {
     const locationElement = document.querySelector('.weather-location');
     const tempElement = document.querySelector('.weather-temp');
@@ -1838,18 +1574,15 @@ function updateWeatherDisplay(data) {
     tempElement.textContent = `${Math.round(data.main.temp)}${tempUnit}`;
     
     // Update description
-    descElement.textContent = data.weather[0].description.charAt(0).toUpperCase() + 
-                               data.weather[0].description.slice(1);
-    
-    // Update icon
-    iconElement.className = '';
-    iconElement.classList.add('fas');
-    
-    // If using the simulation
-    if (data.weather[0].icon.startsWith('fa-')) {
-        iconElement.classList.add(data.weather[0].icon);
-    } else {
-        // If using actual OpenWeatherMap data, map icon codes to Font Awesome icons
+    if (data.weather && data.weather.length > 0) {
+        descElement.textContent = data.weather[0].description.charAt(0).toUpperCase() + 
+                                data.weather[0].description.slice(1);
+        
+        // Update icon
+        iconElement.className = '';
+        iconElement.classList.add('fas');
+        
+        // Map OpenWeatherMap icon codes to Font Awesome icons
         const iconMap = {
             '01d': 'fa-sun',
             '01n': 'fa-moon',
@@ -1871,42 +1604,99 @@ function updateWeatherDisplay(data) {
             '50n': 'fa-smog'
         };
         
-        iconElement.classList.add(iconMap[data.weather[0].icon] || 'fa-cloud');
+        if (data.weather[0].icon && iconMap[data.weather[0].icon]) {
+            iconElement.classList.add(iconMap[data.weather[0].icon]);
+        } else if (data.weather[0].icon && data.weather[0].icon.startsWith('fa-')) {
+            // If using the simulation as fallback
+            iconElement.classList.add(data.weather[0].icon);
+        } else {
+            // Default icon if no match
+            iconElement.classList.add('fa-cloud');
+        }
+    } else {
+        // Handle case where weather data might be incomplete
+        descElement.textContent = 'Weather information unavailable';
+        iconElement.className = 'fas fa-question-circle';
+    }
+    
+    // Update the weather location in user settings
+    if (data.name && data.name !== userLocation.city) {
+        userLocation.city = data.name;
+        userSettings.location = userLocation;
+        // Update the location input if visible
+        const locationInput = document.getElementById('location-input');
+        if (locationInput) {
+            locationInput.value = data.name;
+        }
     }
 }
 
-// Function to detect user's location using browser geolocation
 function detectUserLocation() {
     if (navigator.geolocation) {
         document.getElementById('detect-location').innerHTML = '<i class="fas fa-spinner fa-spin"></i>';
         
         navigator.geolocation.getCurrentPosition(
             position => {
-                // In a real app, you would use reverse geocoding to get the city name
-                // For demo purposes, we'll simulate it
                 const lat = position.coords.latitude;
                 const lon = position.coords.longitude;
                 
-                // Simulate reverse geocoding (in real app, use a service like Google Maps API)
-                getReverseGeocode(lat, lon)
-                    .then(city => {
+                // Use OpenWeatherMap API for reverse geocoding to get city name
+                const apiKey = 'd785df9562ae054ceb3b8d3812e0c123';
+                const reverseGeocodeUrl = `https://api.openweathermap.org/geo/1.0/reverse?lat=${lat}&lon=${lon}&limit=1&appid=${apiKey}`;
+                
+                fetch(reverseGeocodeUrl)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Geocoding API error');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        if (data && data.length > 0) {
+                            const cityName = data[0].name;
+                            
+                            userLocation = {
+                                city: cityName,
+                                lat: lat,
+                                lon: lon
+                            };
+                            
+                            document.getElementById('location-input').value = cityName;
+                            document.getElementById('detect-location').innerHTML = '<i class="fas fa-map-marker-alt"></i>';
+                            
+                            // Save to settings
+                            userSettings.location = userLocation;
+                            localStorage.setItem('oneCalendarSettings', JSON.stringify(userSettings));
+                            
+                            // Fetch weather with new location
+                            fetchWeather();
+                            
+                            showAlert('Location detected successfully', 'success');
+                        } else {
+                            throw new Error('No location data found');
+                        }
+                    })
+                    .catch(error => {
+                        console.error('Error getting location name:', error);
+                        document.getElementById('detect-location').innerHTML = '<i class="fas fa-map-marker-alt"></i>';
+                        
+                        // If reverse geocoding fails, still use the coordinates for weather
                         userLocation = {
-                            city: city,
+                            city: `Location (${lat.toFixed(2)}, ${lon.toFixed(2)})`,
                             lat: lat,
                             lon: lon
                         };
                         
-                        document.getElementById('location-input').value = city;
-                        document.getElementById('detect-location').innerHTML = '<i class="fas fa-map-marker-alt"></i>';
+                        document.getElementById('location-input').value = userLocation.city;
                         
-                        // Fetch weather with new location
+                        // Save to settings
+                        userSettings.location = userLocation;
+                        localStorage.setItem('oneCalendarSettings', JSON.stringify(userSettings));
+                        
+                        // Fetch weather with coordinates
                         fetchWeather();
                         
-                        showAlert('Location detected successfully', 'success');
-                    })
-                    .catch(error => {
-                        document.getElementById('detect-location').innerHTML = '<i class="fas fa-map-marker-alt"></i>';
-                        showAlert('Could not determine city name', 'error');
+                        showAlert('Location coordinates detected, but city name unavailable', 'info');
                     });
             },
             error => {
@@ -1915,9 +1705,18 @@ function detectUserLocation() {
                 let errorMessage = 'Unable to retrieve your location';
                 if (error.code === 1) {
                     errorMessage = 'Location access denied. Please check your browser settings.';
+                } else if (error.code === 2) {
+                    errorMessage = 'Location unavailable. Please try again later.';
+                } else if (error.code === 3) {
+                    errorMessage = 'Location request timed out. Please try again.';
                 }
                 
                 showAlert(errorMessage, 'error');
+            },
+            {
+                enableHighAccuracy: true, 
+                timeout: 10000,
+                maximumAge: 0
             }
         );
     } else {
@@ -1925,47 +1724,365 @@ function detectUserLocation() {
     }
 }
 
-// Function to simulate reverse geocoding
-function getReverseGeocode(lat, lon) {
-    return new Promise((resolve, reject) => {
-        // In a real app, you would make an API call to a geocoding service
-        // For demo purposes, we'll just return a city based on rough coordinates
-        
-        setTimeout(() => {
-            // Very rough approximation for demo purposes
-            if (lat > 40 && lat < 50 && lon > -80 && lon < -70) {
-                resolve('New York');
-            } else if (lat > 30 && lat < 40 && lon > -125 && lon < -115) {
-                resolve('Los Angeles');
-            } else if (lat > 35 && lat < 45 && lon > -5 && lon < 5) {
-                resolve('Paris');
-            } else if (lat > 50 && lat < 55 && lon > -1 && lon < 1) {
-                resolve('London');
-            } else if (lat > 35 && lat < 36 && lon > 139 && lon < 140) {
-                resolve('Tokyo');
-            } else if (lat > -35 && lat < -33 && lon > 150 && lon < 152) {
-                resolve('Sydney');
-            } else {
-                // Default case for unknown locations
-                resolve(`City (${lat.toFixed(2)}, ${lon.toFixed(2)})`);
+// Simulated weather data as fallback for when API fails
+function simulateWeatherData(location, unit) {
+    // Add the missing implementation or close the function properly
+    return {}; // Placeholder return to avoid errors
+}
+
+// Global variables
+let currentDate = new Date();
+let currentView = 'week';
+let events = []; // Will store all events
+let editingEventId = null; // To track which event is being edited
+let selectedColor = 1; // Default color for new events
+let darkMode = false; // Track theme state
+let calendarSources = [
+    { id: 'work', name: 'Work', color: 'event-color-1', visible: true },
+    { id: 'personal', name: 'Personal', color: 'event-color-2', visible: true },
+    { id: 'family', name: 'Family', color: 'event-color-3', visible: true }
+];
+let draggedEvent = null; // Track event being dragged
+let userLocation = { 
+    city: 'London', 
+    lat: 51.5074, 
+    lon: -0.1278 
+};
+let weatherUnit = 'metric';
+let selectedTimezone = 'local';
+let clockInterval;
+let currentTheme = 'theme-default';
+let currentBackground = 'none';
+let customBackgroundImage = null;
+let userSettings = {
+    defaultView: 'week',
+    weekStartsOn: 0, // 0 = Sunday, 1 = Monday
+    timeFormat: '12', // 12 or 24 hour
+    showWeekNumbers: false,
+    defaultDarkMode: false,
+    defaultReminder: '30',
+    location: { city: 'London', lat: 51.5074, lon: -0.1278 },
+    weatherUnit: 'metric',
+    defaultTimezone: 'local',
+    theme: 'theme-default',
+    background: 'none',
+    customBackground: null
+};
+
+// Initialize calendar components
+document.addEventListener('DOMContentLoaded', function() {
+    loadSampleEvents();
+    setupEventListeners();
+    initializeCalendarViews();
+    updateCalendarView();
+    renderMiniCalendar();
+    initializeSearchFunction();
+    loadUserSettings();
+    initializeWeatherAndClock();
+    initializeWeatherLocationEdit();
+});
+
+// Load sample events for demonstration
+function loadSampleEvents() {
+    const today = new Date();
+    const tomorrow = new Date(today);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    const nextWeek = new Date(today);
+    nextWeek.setDate(nextWeek.getDate() + 7);
+    
+    events = [
+        {
+            id: 1,
+            title: 'Team Meeting',
+            startDate: new Date(today.getFullYear(), today.getMonth(), today.getDate(), 10, 0),
+            endDate: new Date(today.getFullYear(), today.getMonth(), today.getDate(), 11, 30),
+            color: 1,
+            calendar: 'work',
+            location: 'Conference Room B',
+            description: 'Weekly team sync meeting',
+            guests: 'team@example.com',
+            notification: 15,
+            repeat: 'weekly'
+        },
+        {
+            id: 2,
+            title: 'Lunch with Sarah',
+            startDate: new Date(today.getFullYear(), today.getMonth(), today.getDate(), 12, 30),
+            endDate: new Date(today.getFullYear(), today.getMonth(), today.getDate(), 13, 30),
+            color: 2,
+            calendar: 'personal',
+            location: 'Cafe Bistro',
+            description: 'Catch up lunch',
+            guests: 'sarah@example.com',
+            notification: 30,
+            repeat: 'none'
+        },
+        {
+            id: 3,
+            title: 'Project Deadline',
+            startDate: new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate(), 17, 0),
+            endDate: new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate(), 17, 30),
+            color: 1,
+            calendar: 'work',
+            location: '',
+            description: 'Submit final project deliverables',
+            guests: '',
+            notification: 1440,
+            repeat: 'none'
+        },
+        {
+            id: 4,
+            title: 'Family Dinner',
+            startDate: new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate(), 19, 0),
+            endDate: new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate(), 21, 0),
+            color: 3,
+            calendar: 'family',
+            location: 'Home',
+            description: 'Monthly family dinner',
+            guests: 'family@example.com',
+            notification: 60,
+            repeat: 'monthly'
+        },
+        {
+            id: 5,
+            title: 'Dentist Appointment',
+            startDate: new Date(nextWeek.getFullYear(), nextWeek.getMonth(), nextWeek.getDate(), 14, 0),
+            endDate: new Date(nextWeek.getFullYear(), nextWeek.getMonth(), nextWeek.getDate(), 15, 0),
+            color: 2,
+            calendar: 'personal',
+            location: 'Dental Clinic',
+            description: 'Regular checkup',
+            guests: '',
+            notification: 60,
+            repeat: 'none'
+        },
+        {
+            id: 6,
+            title: 'Gym Session',
+            startDate: new Date(today.getFullYear(), today.getMonth(), today.getDate(), 18, 0),
+            endDate: new Date(today.getFullYear(), today.getMonth(), today.getDate(), 19, 0),
+            color: 2,
+            calendar: 'personal',
+            location: 'Fitness Center',
+            description: 'Cardio and weights workout',
+            guests: '',
+            notification: 30,
+            repeat: 'daily'
+        },
+        {
+            id: 7,
+            title: 'Client Call',
+            startDate: new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate(), 14, 0),
+            endDate: new Date(tomorrow.getFullYear(), tomorrow.getMonth(), tomorrow.getDate(), 15, 0),
+            color: 1,
+            calendar: 'work',
+            location: 'Zoom Meeting',
+            description: 'Discuss project requirements',
+            guests: 'client@example.com',
+            notification: 15,
+            repeat: 'none'
+        }
+    ];
+}
+
+// Setup all event listeners
+function setupEventListeners() {
+    // View switching
+    document.querySelectorAll('.view-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            document.querySelectorAll('.view-btn').forEach(btn => btn.classList.remove('active'));
+            this.classList.add('active');
+            currentView = this.getAttribute('data-view');
+            updateCalendarView();
+        });
+    });
+    
+    // Date navigation
+    document.getElementById('prev-btn').addEventListener('click', navigatePrevious);
+    document.getElementById('next-btn').addEventListener('click', navigateNext);
+    document.getElementById('today-btn').addEventListener('click', navigateToday);
+    
+    // Mini calendar navigation
+    document.getElementById('prev-mini-month').addEventListener('click', () => {
+        const miniDate = new Date(currentDate);
+        miniDate.setMonth(miniDate.getMonth() - 1);
+        renderMiniCalendar(miniDate);
+    });
+    
+    document.getElementById('next-mini-month').addEventListener('click', () => {
+        const miniDate = new Date(currentDate);
+        miniDate.setMonth(miniDate.getMonth() + 1);
+        renderMiniCalendar(miniDate);
+    });
+    
+    // Event modal
+    document.getElementById('add-event-btn').addEventListener('click', openAddEventModal);
+    document.getElementById('close-modal').addEventListener('click', closeEventModal);
+    document.getElementById('cancel-event').addEventListener('click', closeEventModal);
+    document.getElementById('save-event').addEventListener('click', saveEvent);
+    document.getElementById('delete-event').addEventListener('click', deleteEvent);
+    
+    // Color selection
+    document.querySelectorAll('.color-option').forEach(option => {
+        option.addEventListener('click', function() {
+            document.querySelectorAll('.color-option').forEach(opt => opt.classList.remove('selected'));
+            this.classList.add('selected');
+            selectedColor = this.getAttribute('data-color');
+        });
+    });
+    
+    // Theme toggle
+    document.getElementById('theme-toggle').addEventListener('click', toggleTheme);
+    
+    // Sidebar toggle for mobile
+    document.getElementById('show-sidebar').addEventListener('click', () => {
+        document.querySelector('.sidebar').classList.add('show');
+    });
+    
+    document.getElementById('close-sidebar').addEventListener('click', () => {
+        document.querySelector('.sidebar').classList.remove('show');
+    });
+    
+    // Calendar visibility toggle
+    document.querySelectorAll('.calendar-visibility').forEach(toggle => {
+        toggle.addEventListener('click', function() {
+            const calendarItem = this.closest('.calendar-item');
+            const calendarName = calendarItem.querySelector('.calendar-name').textContent.toLowerCase();
+            
+            // Find the calendar in our sources
+            const calendarSource = calendarSources.find(cal => cal.name.toLowerCase() === calendarName);
+            if (calendarSource) {
+                calendarSource.visible = !calendarSource.visible;
+                
+                // Update the icon
+                if (calendarSource.visible) {
+                    this.innerHTML = '<i class="fas fa-eye"></i>';
+                } else {
+                    this.innerHTML = '<i class="fas fa-eye-slash"></i>';
+                }
+                
+                // Refresh the calendar view
+                updateCalendarView();
             }
-        }, 1000);
+        });
+    });
+    
+    // Add calendar button
+    document.getElementById('add-calendar-btn').addEventListener('click', openAddCalendarModal);
+    document.getElementById('close-calendar-modal').addEventListener('click', closeCalendarModal);
+    document.getElementById('cancel-calendar').addEventListener('click', closeCalendarModal);
+    document.getElementById('save-calendar').addEventListener('click', saveCalendar);
+    
+    // Calendar type change
+    document.getElementById('calendar-type').addEventListener('change', function() {
+        const externalFields = document.getElementById('external-calendar-fields');
+        if (this.value !== 'local') {
+            externalFields.classList.remove('hidden');
+        } else {
+            externalFields.classList.add('hidden');
+        }
+    });
+    
+    // Account settings
+    document.getElementById('account-btn').addEventListener('click', openAccountModal);
+    document.getElementById('close-account-modal').addEventListener('click', closeAccountModal);
+    document.getElementById('close-settings').addEventListener('click', closeAccountModal);
+    document.getElementById('save-settings').addEventListener('click', saveUserSettings);
+    
+    // Connect service buttons
+    document.querySelectorAll('.connect-btn').forEach(button => {
+        button.addEventListener('click', function() {
+            const service = this.getAttribute('data-service');
+            connectCalendarService(service);
+        });
+    });
+    
+    // Dark mode preference
+    document.getElementById('dark-mode-pref').addEventListener('change', function() {
+        if (this.checked) {
+            if (!darkMode) toggleTheme();
+        } else {
+            if (darkMode) toggleTheme();
+        }
+    });
+    
+    // Import/Export buttons
+    document.getElementById('import-calendar-btn').addEventListener('click', importCalendar);
+    document.getElementById('export-calendar-btn').addEventListener('click', exportCalendar);
+    document.getElementById('calendar-settings-btn').addEventListener('click', openAccountModal);
+    
+    // Weather and clock event listeners
+    document.getElementById('refresh-weather').addEventListener('click', fetchWeather);
+    document.getElementById('timezone-select').addEventListener('change', function() {
+        selectedTimezone = this.value;
+        updateClock();
+        localStorage.setItem('oneCalendarTimezone', selectedTimezone);
+    });
+
+    document.getElementById('detect-location').addEventListener('click', detectUserLocation);
+    document.getElementById('location-input').addEventListener('change', function() {
+        userLocation.city = this.value;
+        fetchWeather();
+        saveUserSettings();
+    });
+
+    // Theme gallery
+    document.querySelectorAll('.theme-item').forEach(item => {
+        item.addEventListener('click', function() {
+            document.querySelectorAll('.theme-item').forEach(t => t.classList.remove('selected'));
+            this.classList.add('selected');
+            currentTheme = this.getAttribute('data-theme');
+            applyTheme(currentTheme);
+        });
+    });
+
+    // Background gallery
+    document.querySelectorAll('.background-item').forEach(item => {
+        item.addEventListener('click', function() {
+            document.querySelectorAll('.background-item').forEach(b => b.classList.remove('selected'));
+            this.classList.add('selected');
+            currentBackground = this.getAttribute('data-bg');
+            applyBackground(currentBackground);
+        });
+    });
+
+    // Custom background
+    document.getElementById('custom-background-button').addEventListener('click', function() {
+        document.getElementById('custom-background-input').click();
+    });
+
+    document.getElementById('custom-background-input').addEventListener('change', function(e) {
+        if (e.target.files && e.target.files[0]) {
+            const file = e.target.files[0];
+            const reader = new FileReader();
+            
+            reader.onload = function(event) {
+                const imgDataUrl = event.target.result;
+                customBackgroundImage = imgDataUrl;
+                
+                // Show preview
+                const preview = document.getElementById('custom-background-preview');
+                preview.innerHTML = '';
+                const img = document.createElement('img');
+                img.src = imgDataUrl;
+                preview.appendChild(img);
+                
+                // Apply custom background
+                applyCustomBackground(imgDataUrl);
+                
+                // Deselect other backgrounds
+                document.querySelectorAll('.background-item').forEach(b => b.classList.remove('selected'));
+                currentBackground = 'custom';
+            };
+            
+            reader.readAsDataURL(file);
+        }
     });
 }
 
-// Detect network status changes
-window.addEventListener('online', () => {
-    showAlert('You are back online. Syncing calendars...', 'info');
-    syncWithOnlineCalendars();
-});
-
-window.addEventListener('offline', () => {
-    showAlert('You are now offline. Changes will be synced when connectivity returns.', 'info');
-});
-
-// Initialize the app fully with local storage support
-function initializeApp() {
-    // Load user settings
+// User settings functions
+function loadUserSettings() {
+    // In a real app, this would load from localStorage or a server
     const storedSettings = localStorage.getItem('oneCalendarSettings');
     if (storedSettings) {
         try {
@@ -1975,31 +2092,466 @@ function initializeApp() {
         }
     }
     
-    // Apply dark mode if set in settings
+    // Apply settings
+    applyUserSettings();
+}
+
+function applyUserSettings() {
+    // Apply dark mode if set
     if (userSettings.defaultDarkMode && !darkMode) {
         toggleTheme();
     }
     
-    // Load previously saved calendars
-    loadCalendarSourcesFromLocalStorage();
+    // Set the dark mode checkbox based on current state
+    document.getElementById('dark-mode-pref').checked = darkMode;
     
-    // Load previously saved events
-    loadEventsFromLocalStorage();
+    // Set other form fields to match settings
+    document.getElementById('default-view').value = userSettings.defaultView;
+    document.getElementById('week-starts').value = userSettings.weekStartsOn;
+    document.getElementById('time-format').value = userSettings.timeFormat;
+    document.getElementById('show-week-numbers').checked = userSettings.showWeekNumbers;
+    document.getElementById('default-reminder').value = userSettings.defaultReminder;
     
-    // If no events were loaded, add sample events
-    if (events.length === 0) {
-        loadSampleEvents();
+    // Set weather unit radio button
+    document.querySelector(`input[name="weather-unit"][value="${userSettings.weatherUnit}"]`).checked = true;
+    weatherUnit = userSettings.weatherUnit;
+
+    // Set location input
+    document.getElementById('location-input').value = userSettings.location.city || 'London';
+    userLocation = userSettings.location;
+
+    // Set timezone
+    document.getElementById('default-timezone').value = userSettings.defaultTimezone;
+    document.getElementById('timezone-select').value = userSettings.defaultTimezone;
+    selectedTimezone = userSettings.defaultTimezone;
+    
+    // Apply theme if set
+    if (userSettings.theme) {
+        applyTheme(userSettings.theme);
+        
+        // Update theme gallery selection
+        document.querySelectorAll('.theme-item').forEach(item => {
+            item.classList.remove('selected');
+            if (item.getAttribute('data-theme') === userSettings.theme) {
+                item.classList.add('selected');
+            }
+        });
     }
     
-    // Initialize weather and clock
-    initializeWeatherAndClock();
+    if (userSettings.background && userSettings.background !== 'none') {
+        if (userSettings.background === 'custom' && userSettings.customBackground) {
+            applyCustomBackground(userSettings.customBackground);
+            
+            // Update custom background preview
+            const preview = document.getElementById('custom-background-preview');
+            preview.innerHTML = '';
+            const img = document.createElement('img');
+            img.src = userSettings.customBackground;
+            preview.appendChild(img);
+        } else {
+            applyBackground(userSettings.background);
+        }
+        
+        // Update background gallery selection
+        document.querySelectorAll('.background-item').forEach(item => {
+            item.classList.remove('selected');
+            if (item.getAttribute('data-bg') === userSettings.background) {
+                item.classList.add('selected');
+            }
+        });
+    }
     
-    // Set up periodic sync if online
-    if (navigator.onLine) {
-        // Sync every 5 minutes
-        setInterval(syncWithOnlineCalendars, 5 * 60 * 1000);
+    // Apply week start setting
+    updateCalendarView();
+}
+
+function saveUserSettings() {
+    weatherUnit = document.querySelector('input[name="weather-unit"]:checked').value;
+    const defaultTimezone = document.getElementById('default-timezone').value;
+    const locationCity = document.getElementById('location-input').value;
+    
+    userLocation = {
+        ...userLocation,
+        city: locationCity
+    };
+    
+    userSettings = {
+        defaultView: document.getElementById('default-view').value,
+        weekStartsOn: parseInt(document.getElementById('week-starts').value),
+        timeFormat: document.getElementById('time-format').value,
+        showWeekNumbers: document.getElementById('show-week-numbers').checked,
+        defaultDarkMode: document.getElementById('dark-mode-pref').checked,
+        defaultReminder: document.getElementById('default-reminder').value,
+        location: userLocation,
+        weatherUnit: weatherUnit,
+        defaultTimezone: defaultTimezone,
+        theme: currentTheme,
+        background: currentBackground,
+        customBackground: customBackgroundImage
+    };
+    
+    // Save to localStorage
+    localStorage.setItem('oneCalendarSettings', JSON.stringify(userSettings));
+    
+    // Apply the settings
+    applyUserSettings();
+    
+    // Close modal and show confirmation
+    closeAccountModal();
+    showAlert('Settings saved successfully', 'success');
+}
+
+// Theme and Background functions
+function applyTheme(theme) {
+    // Remove any existing theme classes
+    document.body.classList.remove('theme-default', 'theme-ocean', 'theme-forest', 'theme-sunset', 'theme-violet', 'theme-midnight');
+    
+    // Add the selected theme class
+    document.body.classList.add(theme);
+    currentTheme = theme;
+}
+
+function applyBackground(background) {
+    // Remove existing background
+    document.body.style.backgroundImage = '';
+    document.body.classList.remove('has-bg-image');
+    
+    if (background === 'none') {
+        return;
+    }
+    
+    // Add the selected background
+    document.body.classList.add('has-bg-image');
+    
+    // Map background codes to URLs
+    const backgroundMap = {
+        'bg-mountains': 'https://source.unsplash.com/featured/1920x1080?mountains',
+        'bg-beach': 'https://source.unsplash.com/featured/1920x1080?beach',
+        'bg-forest': 'https://source.unsplash.com/featured/1920x1080?forest',
+        'bg-city': 'https://source.unsplash.com/featured/1920x1080?city',
+        'bg-abstract': 'https://source.unsplash.com/featured/1920x1080?abstract',
+        'bg-pattern': 'https://source.unsplash.com/featured/1920x1080?pattern',
+        'bg-space': 'https://source.unsplash.com/featured/1920x1080?space',
+        'bg-ocean': 'https://source.unsplash.com/featured/1920x1080?ocean'
+    };
+    
+    if (backgroundMap[background]) {
+        document.body.style.backgroundImage = `url(${backgroundMap[background]})`;
     }
 }
 
-// Call after DOM is loaded
-document.addEventListener('DOMContentLoaded', initializeApp);
+function applyCustomBackground(imageDataUrl) {
+    // Remove existing background
+    document.body.classList.add('has-bg-image');
+    document.body.style.backgroundImage = `url(${imageDataUrl})`;
+}
+
+// Initialize search functionality
+function initializeSearchFunction() {
+    const searchInput = document.getElementById('search-input');
+    const searchResults = document.getElementById('search-results');
+    
+    searchInput.addEventListener('focus', () => {
+        searchResults.style.display = 'block';
+    });
+    
+    searchInput.addEventListener('blur', () => {
+        // Delay hiding to allow clicks on results
+        setTimeout(() => {
+            searchResults.style.display = 'none';
+        }, 200);
+    });
+    
+    searchInput.addEventListener('input', function() {
+        const query = this.value.toLowerCase().trim();
+        searchResults.innerHTML = '';
+        
+        if (query.length < 2) {
+            searchResults.style.display = 'none';
+            return;
+        }
+        
+        const matchingEvents = events.filter(event => 
+            event.title.toLowerCase().includes(query) || 
+            (event.description && event.description.toLowerCase().includes(query)) ||
+            (event.location && event.location.toLowerCase().includes(query))
+        );
+        
+        if (matchingEvents.length === 0) {
+            searchResults.innerHTML = '<div class="search-result-item">No events found</div>';
+        } else {
+            matchingEvents.forEach(event => {
+                const resultItem = document.createElement('div');
+                resultItem.className = 'search-result-item';
+                
+                const resultTitle = document.createElement('div');
+                resultTitle.className = 'search-result-title';
+                resultTitle.textContent = event.title;
+                
+                const resultDate = document.createElement('div');
+                resultDate.className = 'search-result-date';
+                resultDate.textContent = `${formatFullDate(event.startDate)} at ${formatTime(event.startDate)}`;
+                
+                resultItem.appendChild(resultTitle);
+                resultItem.appendChild(resultDate);
+                
+                resultItem.addEventListener('click', () => {
+                    // Navigate to the event's date and open it
+                    currentDate = new Date(event.startDate);
+                    updateCalendarView();
+                    openEditEventModal(event.id);
+                });
+                
+                searchResults.appendChild(resultItem);
+            });
+        }
+        
+        searchResults.style.display = 'block';
+    });
+}
+
+// Calendar service connection
+function connectCalendarService(service) {
+    // In a real app, this would open OAuth flow
+    // For demo purposes, we'll just simulate success
+    
+    const button = document.querySelector(`.connect-btn[data-service="${service}"]`);
+    const statusElement = button.closest('.service-connection').querySelector('.service-status');
+    
+    // Simulate connection process
+    button.textContent = 'Connecting...';
+    button.disabled = true;
+    
+    setTimeout(() => {
+        statusElement.textContent = 'Connected';
+        button.textContent = 'Disconnect';
+        button.classList.remove('connect-btn');
+        button.classList.add('disconnect-btn');
+        button.disabled = false;
+        
+        showAlert(`Successfully connected to ${service.charAt(0).toUpperCase() + service.slice(1)} Calendar`, 'success');
+        
+        // Add a new calendar source for this service
+        const newCalendarId = `${service}-calendar`;
+        if (!calendarSources.some(cal => cal.id === newCalendarId)) {
+            calendarSources.push({
+                id: newCalendarId,
+                name: `${service.charAt(0).toUpperCase() + service.slice(1)} Calendar`,
+                color: `event-color-${Math.floor(Math.random() * 5) + 1}`,
+                visible: true
+            });
+            
+            // Update sidebar calendar list
+            updateCalendarList();
+        }
+    }, 1500);
+}
+
+// Update the sidebar calendar list
+function updateCalendarList() {
+    const calendarList = document.querySelector('.calendar-list');
+    const addButton = document.querySelector('.add-calendar-btn');
+    
+    // Remove all calendar items except the add button
+    const calendarItems = calendarList.querySelectorAll('.calendar-item');
+    calendarItems.forEach(item => {
+        calendarList.removeChild(item);
+    });
+    
+    // Add calendar items from sources
+    calendarSources.forEach(calendar => {
+        const calendarItem = document.createElement('div');
+        calendarItem.className = 'calendar-item';
+        
+        const calendarColor = document.createElement('div');
+        calendarColor.className = 'calendar-color';
+        calendarColor.style.backgroundColor = `var(--${calendar.color.replace('event-color', 'event-color')})`;
+        
+        const calendarName = document.createElement('div');
+        calendarName.className = 'calendar-name';
+        calendarName.textContent = calendar.name;
+        
+        const calendarVisibility = document.createElement('div');
+        calendarVisibility.className = 'calendar-visibility';
+        calendarVisibility.innerHTML = calendar.visible ? 
+            '<i class="fas fa-eye"></i>' : 
+            '<i class="fas fa-eye-slash"></i>';
+        
+        calendarItem.appendChild(calendarColor);
+        calendarItem.appendChild(calendarName);
+        calendarItem.appendChild(calendarVisibility);
+        
+        // Add click handler for visibility toggle
+        calendarVisibility.addEventListener('click', function() {
+            calendar.visible = !calendar.visible;
+            
+            if (calendar.visible) {
+                this.innerHTML = '<i class="fas fa-eye"></i>';
+            } else {
+                this.innerHTML = '<i class="fas fa-eye-slash"></i>';
+            }
+            
+            updateCalendarView();
+        });
+        
+        // Insert before the add button
+        calendarList.insertBefore(calendarItem, addButton);
+    });
+}
+
+// Import/Export functions
+function importCalendar() {
+    // In a real app, this would open a file picker
+    // For demo purposes, we'll just show a confirmation
+    showAlert('Calendar import functionality would open a file picker here', 'info');
+}
+
+function exportCalendar() {
+    // In a real app, this would generate and download an ICS file
+    // For demo purposes, we'll just show a confirmation
+    showAlert('Calendar export functionality would download an ICS file', 'info');
+}
+
+// Initialize calendar views structure
+function initializeCalendarViews() {
+    // Create day view time slots
+    const dayTimeSlots = document.getElementById('day-time-slots');
+    dayTimeSlots.innerHTML = '';
+    
+    for (let hour = 0; hour < 24; hour++) {
+        const timeSlot = document.createElement('div');
+        timeSlot.className = 'time-slot';
+        
+        const timeLabel = document.createElement('div');
+        timeLabel.className = 'time-label';
+        timeLabel.textContent = formatHour(hour);
+        
+        const slotContent = document.createElement('div');
+        slotContent.className = 'slot-content';
+        slotContent.setAttribute('data-hour', hour);
+        
+        // Add drop zone for drag and drop
+        slotContent.addEventListener('dragover', function(e) {
+            e.preventDefault();
+            this.style.backgroundColor = 'rgba(49, 116, 173, 0.1)';
+        });
+        
+        slotContent.addEventListener('dragleave', function() {
+            this.style.backgroundColor = '';
+        });
+        
+        slotContent.addEventListener('drop', function(e) {
+            e.preventDefault();
+            this.style.backgroundColor = '';
+            
+            if (draggedEvent) {
+                const hour = parseInt(this.getAttribute('data-hour'));
+                moveEventToNewTime(draggedEvent, currentDate, hour);
+            }
+        });
+        
+        timeSlot.appendChild(timeLabel);
+        timeSlot.appendChild(slotContent);
+        dayTimeSlots.appendChild(timeSlot);
+    }
+    
+    // Create week view headers and columns
+    updateWeekViewStructure();
+}
+
+function updateWeekViewStructure() {
+    const weekHeader = document.getElementById('week-header');
+    const weekGrid = document.getElementById('week-grid');
+    weekHeader.innerHTML = '';
+    weekGrid.innerHTML = '';
+    
+    // Get the start of week based on user settings
+    const startDate = getStartOfWeek(currentDate);
+    
+    for (let i = 0; i < 7; i++) {
+        const date = new Date(startDate);
+        date.setDate(date.getDate() + i);
+        
+        const weekday = document.createElement('div');
+        weekday.className = 'weekday';
+        weekday.textContent = formatDayHeader(date);
+        weekHeader.appendChild(weekday);
+        
+        const column = document.createElement('div');
+        column.className = 'week-column';
+        column.setAttribute('data-date', formatDateAttribute(date));
+        
+        // Create time slots inside each column
+        for (let hour = 0; hour < 24; hour++) {
+            const hourSlot = document.createElement('div');
+            hourSlot.className = 'time-slot';
+            hourSlot.style.height = '50px';
+            hourSlot.setAttribute('data-hour', hour);
+            
+            const timeLabel = document.createElement('div');
+            timeLabel.className = 'time-label';
+            timeLabel.style.fontSize = '10px';
+            timeLabel.textContent = i === 0 ? formatHour(hour) : '';
+            
+            const slotContent = document.createElement('div');
+            slotContent.className = 'slot-content';
+            
+            // Add drop zone for drag and drop
+            slotContent.addEventListener('dragover', function(e) {
+                e.preventDefault();
+                this.style.backgroundColor = 'rgba(49, 116, 173, 0.1)';
+            });
+            
+            slotContent.addEventListener('dragleave', function() {
+                this.style.backgroundColor = '';
+            });
+            
+            slotContent.addEventListener('drop', function(e) {
+                e.preventDefault();
+                this.style.backgroundColor = '';
+                
+                if (draggedEvent) {
+                    const dateStr = this.closest('.week-column').getAttribute('data-date');
+                    const hour = parseInt(this.closest('.time-slot').getAttribute('data-hour'));
+                    const newDate = parseDate(dateStr);
+                    moveEventToNewTime(draggedEvent, newDate, hour);
+                }
+            });
+            
+            hourSlot.appendChild(timeLabel);
+            hourSlot.appendChild(slotContent);
+            column.appendChild(hourSlot);
+        }
+        
+        weekGrid.appendChild(column);
+    }
+}
+
+// Function to move an event to a new time/date
+function moveEventToNewTime(eventId, newDate, newHour, newMinute = 0) {
+    const event = events.find(e => e.id === eventId);
+    if (!event) return;
+    
+    // Calculate the duration of the event
+    const duration = event.endDate - event.startDate;
+    
+    // Create new start date
+    const newStartDate = new Date(newDate);
+    newStartDate.setHours(newHour, newMinute || 0, 0, 0);
+    
+    // Create new end date
+    const newEndDate = new Date(newStartDate.getTime() + duration);
+    
+    // Update the event
+    event.startDate = newStartDate;
+    event.endDate = newEndDate;
+    
+    // Reset draggedEvent
+    draggedEvent = null;
+    
+    // Update the calendar view
+    updateCalendarView();
+    
+    // Show confirmation
+    showAlert('Event moved successfully', 'success');
+}
