@@ -2040,17 +2040,61 @@ textarea {
     }
 
     .weather-time-container {
-        flex-direction: column;
-        gap: 15px;
+        flex-direction: row;
+        padding: 10px;
     }
-    
+
+    .weather-container,
     .timezone-container {
-        align-items: flex-start;
-        width: 100%;
+        flex: 1;
+        min-width: 0;
     }
 
     .weather-container {
+        gap: 10px;
+    }
+
+    .weather-icon {
+        font-size: 1.5rem;
+    }
+
+    .weather-info {
+        font-size: 0.9rem;
+    }
+
+    .weather-temp {
+        font-size: 1.1rem;
+    }
+
+    .weather-location {
+        white-space: nowrap;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        max-width: 100%;
+    }
+
+    .weather-location-input {
+        font-size: 0.8rem;
+        height: 24px;
+    }
+
+    .weather-location-submit {
+        height: 24px;
+        padding: 0 6px;
+    }
+
+    .clock {
+        font-size: 1.2rem;
+    }
+
+    .timezone-container {
+        align-items: flex-start;
+    }
+
+    .timezone-select {
+        font-size: 0.8rem;
         width: 100%;
+        padding: 4px;
     }
 
     .account-modal {
@@ -2100,16 +2144,32 @@ textarea {
         grid-template-columns: 1fr;
     }
 
-    .weather-icon {
-        font-size: 2rem;
+    .weather-time-container {
+        padding: 5px;
     }
-    
+
+    .weather-icon {
+        font-size: 1.2rem;
+    }
+
+    .weather-info {
+        font-size: 0.8rem;
+    }
+
     .weather-temp {
-        font-size: 1.1rem;
+        font-size: 1rem;
     }
 
     .clock {
-        font-size: 1.2rem;
+        font-size: 1rem;
+    }
+
+    .timezone-select {
+        font-size: 0.7rem;
+    }
+
+    .refresh-weather {
+        font-size: 0.8rem;
     }
 }
 
@@ -2512,6 +2572,14 @@ input[type="radio"]:checked {
     .event-color-4 { background-color: #FFA500; }
     .event-color-5 { background-color: #800080; }
     
+    .event-color-1,
+    .event-color-2,
+    .event-color-3,
+    .event-color-4,
+    .event-color-5 {
+        color: #FFFFFF;
+    }
+    
     input, select, textarea {
         border: 2px solid #000000;
     }
@@ -2710,7 +2778,7 @@ body.dark-mode .month-day.other-month {
 
     /* Weather and time container adjustments */
     .weather-time-container {
-        padding: 10px; /* Reduced padding */
+        padding: 10px;
     }
 }
 
