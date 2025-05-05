@@ -1374,6 +1374,8 @@ function fetchWeather() {
     // Weather loading state
     document.querySelector('.weather-temp').textContent = '--°C';
     document.querySelector('.weather-desc').textContent = 'Fetching weather...';
+    document.querySelector('.weather-humidity').textContent = 'Humidity --%';
+    document.querySelector('.weather-wind').textContent = 'Wind -- km/h';
     
     // API key for OpenWeatherMap
     const apiKey = 'd785df9562ae054ceb3b8d3812e0c123';
@@ -1402,6 +1404,9 @@ function fetchWeather() {
                 userLocation.lon = data.coord.lon;
             }
             
+            // Log the complete weather data to ensure humidity and wind are present
+            console.log('Weather data received:', data);
+            
             updateWeatherDisplay(data);
             refreshButton.style.transform = 'none';
             refreshButton.disabled = false;
@@ -1413,6 +1418,8 @@ function fetchWeather() {
             console.error('Error fetching weather:', error);
             document.querySelector('.weather-temp').textContent = '--';
             document.querySelector('.weather-desc').textContent = 'Weather unavailable';
+            document.querySelector('.weather-humidity').textContent = 'Humidity --%';
+            document.querySelector('.weather-wind').textContent = 'Wind -- km/h';
             refreshButton.style.transform = 'none';
             refreshButton.disabled = false;
             
@@ -1425,11 +1432,14 @@ function fetchWeather() {
         });
 }
 
+// Updated function to display humidity and wind data
 function updateWeatherDisplay(data) {
     const locationElement = document.querySelector('.weather-location');
     const tempElement = document.querySelector('.weather-temp');
     const descElement = document.querySelector('.weather-desc');
     const iconElement = document.querySelector('.weather-icon i');
+    const humidityElement = document.querySelector('.weather-humidity');
+    const windElement = document.querySelector('.weather-wind');
     
     // Update location
     locationElement.textContent = data.name;
@@ -1437,6 +1447,19 @@ function updateWeatherDisplay(data) {
     // Update temperature with unit
     const tempUnit = weatherUnit === 'metric' ? '°C' : '°F';
     tempElement.textContent = `${Math.round(data.main.temp)}${tempUnit}`;
+    
+    // Update humidity (make sure the element exists)
+    if (humidityElement && data.main && data.main.humidity !== undefined) {
+        humidityElement.textContent = `Humidity ${data.main.humidity}%`;
+        humidityElement.style.display = 'block'; // Make sure it's visible
+    }
+    
+    // Update wind (make sure the element exists)
+    if (windElement && data.wind && data.wind.speed !== undefined) {
+        const windSpeedUnit = weatherUnit === 'metric' ? 'm/s' : 'mph';
+        windElement.textContent = `Wind ${Math.round(data.wind.speed)} ${windSpeedUnit}`;
+        windElement.style.display = 'block'; // Make sure it's visible
+    }
     
     // Update description
     if (data.weather && data.weather.length > 0) {
@@ -1590,9 +1613,53 @@ function detectUserLocation() {
 }
 
 // Simulated weather data as fallback for when API fails
+// Simulated weather data as fallback for when API fails
 function simulateWeatherData(location, unit) {
-    // Add the missing implementation or close the function properly
-    return {}; // Placeholder return to avoid errors
+    // Generate random but realistic weather data
+    const temp = unit === 'metric' ? 
+        Math.floor(Math.random() * 30) + 5 : // 5 to 35°C
+        Math.floor(Math.random() * 55) + 40; // 40 to 95°F
+    
+    // Random humidity (30-90%)
+    const humidity = Math.floor(Math.random() * 60) + 30;
+    
+    // Random wind speed (1-15 m/s or 2-30 mph)
+    const windSpeed = unit === 'metric' ?
+        Math.floor(Math.random() * 14) + 1 :  // 1 to 15 m/s
+        Math.floor(Math.random() * 28) + 2;   // 2 to 30 mph
+    
+    // Weather conditions with matching icons
+    const weatherTypes = [
+        { description: 'clear sky', icon: 'fa-sun' },
+        { description: 'few clouds', icon: 'fa-cloud-sun' },
+        { description: 'scattered clouds', icon: 'fa-cloud' },
+        { description: 'broken clouds', icon: 'fa-cloud' },
+        { description: 'shower rain', icon: 'fa-cloud-showers-heavy' },
+        { description: 'rain', icon: 'fa-cloud-rain' },
+        { description: 'thunderstorm', icon: 'fa-bolt' },
+        { description: 'snow', icon: 'fa-snowflake' },
+        { description: 'mist', icon: 'fa-smog' }
+    ];
+    
+    const weather = weatherTypes[Math.floor(Math.random() * weatherTypes.length)];
+    
+    // Build simulated weather data object with same structure as API response
+    return {
+        name: location.city,
+        main: {
+            temp: temp,
+            humidity: humidity
+        },
+        wind: {
+            speed: windSpeed
+        },
+        weather: [
+            {
+                description: weather.description,
+                icon: weather.icon
+            }
+        ]
+    };
 }
 
 // Global variables

@@ -50,7 +50,19 @@
                     <i class="fas fa-plus"></i> Add calendar
                 </button>
             </div>
-
+            <div class="timezone-select-container">
+                <select id="timezone-select" class="timezone-select">
+                    <option value="local">Local Time</option>
+                    <option value="UTC">UTC</option>
+                    <option value="America/New_York">New York</option>
+                    <option value="America/Los_Angeles">Los Angeles</option>
+                    <option value="Europe/London">London</option>
+                    <option value="Europe/Paris">Paris</option>
+                    <option value="Asia/Tokyo">Tokyo</option>
+                    <option value="Asia/Dubai">Dubai</option>
+                    <option value="Australia/Sydney">Sydney</option>
+                </select>
+            </div>
             <div class="mini-calendar">
                 <div class="mini-calendar-header">
                     <div class="mini-calendar-title">April 2025</div>
@@ -95,6 +107,72 @@
                     <i class="far fa-calendar-alt"></i>
                     OneCalendar
                 </div>
+
+                <div class="weather-container">
+                    <!-- Current Weather Section -->
+                    <div class="weather-current">
+                        <div class="weather-icon">
+                            <i class="fas fa-cloud-sun"></i>
+                        </div>
+                        <div class="weather-info">
+                            <div class="weather-location-container">
+                                <div class="weather-location" id="weather-location">Loading location...</div>
+                                <div class="weather-location-edit" id="weather-location-edit">
+                                    <input type="text" class="weather-location-input" id="weather-location-input" placeholder="Enter city name">
+                                    <button class="weather-location-submit" id="weather-location-submit">
+                                        <i class="fas fa-check"></i>
+                                    </button>
+                                </div>
+                            </div>
+                            <div class="weather-details">
+                                <div class="weather-temp">--°C</div>
+                                <div class="weather-desc">Fetching weather...</div>
+                            </div>
+                            <div class="weather-meta">
+                                <div class="weather-humidity"><i class="fas fa-tint"></i> --% </div>
+                                <div class="weather-wind"><i class="fas fa-wind"></i> -- km/h</div>
+                            </div>
+                        </div>
+                        <button class="weather-toggle" id="weather-toggle">
+                            <i class="fas fa-chevron-down"></i>
+                        </button>
+                        <button class="refresh-weather" id="refresh-weather">
+                            <i class="fas fa-sync-alt"></i>
+                        </button>
+                    </div>
+                    
+                    <!-- Forecast Section (Hidden by Default) -->
+                    <div class="weather-forecast" id="weather-forecast">
+                        <div class="forecast-title">3-Day Forecast</div>
+                        <div class="forecast-items">
+                            <!-- Day 1 -->
+                            <div class="forecast-item">
+                                <div class="forecast-day">Tomorrow</div>
+                                <div class="forecast-icon"><i class="fas fa-sun"></i></div>
+                                <div class="forecast-temp">--°/--°</div>
+                                <div class="forecast-desc">--</div>
+                            </div>
+                            
+                            <!-- Day 2 -->
+                            <div class="forecast-item">
+                                <div class="forecast-day">Day 2</div>
+                                <div class="forecast-icon"><i class="fas fa-cloud"></i></div>
+                                <div class="forecast-temp">--°/--°</div>
+                                <div class="forecast-desc">--</div>
+                            </div>
+                            
+                            <!-- Day 3 -->
+                            <div class="forecast-item">
+                                <div class="forecast-day">Day 3</div>
+                                <div class="forecast-icon"><i class="fas fa-cloud-rain"></i></div>
+                                <div class="forecast-temp">--°/--°</div>
+                                <div class="forecast-desc">--</div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+
                 <div class="user-actions">
                     <button class="theme-toggle" id="theme-toggle">
                         <i class="fas fa-moon"></i>
@@ -107,49 +185,7 @@
                     </button>
                 </div>
             </header>
-
-            <!-- Weather and Time Zone container -->
-            <div class="weather-time-container">
-                <div class="weather-container">
-                    <div class="weather-icon">
-                        <i class="fas fa-cloud-sun"></i>
-                    </div>
-                    <div class="weather-info">
-                        <div class="weather-location-container">
-                            <div class="weather-location" id="weather-location">Loading location...</div>
-                            <div class="weather-location-edit" id="weather-location-edit">
-                                <input type="text" class="weather-location-input" id="weather-location-input" placeholder="Enter city name">
-                                <button class="weather-location-submit" id="weather-location-submit">
-                                    <i class="fas fa-check"></i>
-                                </button>
-                            </div>
-                        </div>
-                        <div class="weather-temp">--°C</div>
-                        <div class="weather-desc">Fetching weather...</div>
-                    </div>
-                    <button class="refresh-weather" id="refresh-weather">
-                        <i class="fas fa-sync-alt"></i>
-                    </button>
-                </div>
-                
-                <div class="timezone-container">
-                    <div class="clock" id="clock">00:00:00</div>
-                    <div class="timezone-select-container">
-                        <select id="timezone-select" class="timezone-select">
-                            <option value="local">Local Time</option>
-                            <option value="UTC">UTC</option>
-                            <option value="America/New_York">New York</option>
-                            <option value="America/Los_Angeles">Los Angeles</option>
-                            <option value="Europe/London">London</option>
-                            <option value="Europe/Paris">Paris</option>
-                            <option value="Asia/Tokyo">Tokyo</option>
-                            <option value="Asia/Dubai">Dubai</option>
-                            <option value="Australia/Sydney">Sydney</option>
-                        </select>
-                    </div>
-                </div>
-            </div>
-
+<!-- Main content area -->
             <div class="controls">
                 <div class="date-nav">
                     <button id="prev-btn">
@@ -160,6 +196,9 @@
                         <i class="fas fa-chevron-right"></i>
                     </button>
                     <button class="today-btn" id="today-btn">Today</button>
+                </div>
+                <div class="timezone-container">
+                    <div class="clock" id="clock">00:00:00</div>
                 </div>
                 <div class="view-options">
                     <button class="view-btn" data-view="day">Day</button>
@@ -591,5 +630,6 @@
     <div class="alert-container" id="alert-container"></div>
 
     <script src="script.js"></script>
+    <script src="oneCalendar-enhancements.js"></script>
 </body>
 </html>
