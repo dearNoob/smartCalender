@@ -1169,6 +1169,7 @@ textarea {
     display: flex;
     align-items: center;
     position: relative;
+    width: 100%;
 }
 
 .weather-location {
@@ -2184,7 +2185,8 @@ textarea {
     }
 
     .weather-container {
-        gap: 10px;
+        width: 100%;
+        flex:1;
     }
 
     .weather-icon {
@@ -2278,7 +2280,8 @@ textarea {
     }
 
     .weather-time-container {
-        padding: 5px;
+        flex-direction: column;
+        gap: 15px;
     }
 
     .weather-icon {
@@ -2293,8 +2296,18 @@ textarea {
         font-size: 1rem;
     }
 
+    .weather-container,
+    .timezone-container {
+        width: 100%;
+    }
+    
+    .timezone-container {
+        align-items: flex-start;
+        margin-top: 10px;
+    }
     .clock {
         font-size: 1rem;
+        align-self: flex-start;
     }
 
     .timezone-select {
@@ -3052,6 +3065,18 @@ body.dark-mode .forecast-item:hover {
         min-height: 24px; /* Ensures tappability */
     }
 
+    .forecast-icon {
+        order: 2;
+    }
+    
+    .forecast-day {
+        font-weight: bold;
+        min-width: 80px;
+    }
+
+    .forecast-desc {
+        text-align: right;
+    }
     .day-number {
         font-size: 14px; /* Slightly larger for clarity */
     }
@@ -3089,15 +3114,19 @@ body.dark-mode .forecast-item:hover {
     }
 
     .weather-temp {
-        font-size: 1.1rem; 
+        order: 2;
     }
 
     .forecast-items {
-        gap: 8px;
-        padding: 0 10px 10px;
+        display: flex;
+        flex-direction: column;
+        gap: 10px;
     }
     .forecast-item {
-        padding: 8px 5px;
+        flex-direction: row;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 12px;
     }
     
     .forecast-icon {
@@ -3111,7 +3140,7 @@ body.dark-mode .forecast-item:hover {
     #nl-event-btn span {
         display: none;
     }
-    
+
     .clock {
         font-size: 1.1rem; /* Slightly reduced from 1.2rem */
     }
@@ -3122,5 +3151,331 @@ body.dark-mode .forecast-item:hover {
         min-height: 40px; /* Consistent touch target size */
         padding: 8px 12px;
     }
+    .weather-details {
+        display: flex;
+        align-items: baseline;
+        justify-content: flex-start;
+        gap: 15px;
+        flex-wrap: wrap;
+    }
+}
+/* Improved Mobile Weather Container */
+@media (max-width: 768px) {
+    .weather-container {
+        width: 100%;
+        max-width: none;
+    }
+    
+    .weather-current {
+        display: flex;
+        flex-wrap: wrap;
+        padding: 12px;
+        gap: 10px;
+        justify-content: space-between;
+    }
+    
+    .weather-info {
+        order: 3;
+        flex: 1 0 100%;
+        margin-top: 10px;
+    }
+    
+    .weather-icon {
+        order: 1;
+        flex: 0 0 auto;
+    }
+    
+    .weather-toggle, .refresh-weather {
+        order: 2;
+    }
+    
+    .weather-details {
+        display: flex;
+        justify-content: space-between;
+        width: 100%;
+    }
+    
+    .weather-meta {
+        width: 100%;
+        justify-content: flex-start;
+        gap: 15px;
+        margin-top: 5px;
+    }
 }
 
+@media (max-width: 480px) {
+    .weather-current {
+        padding: 10px;
+    }
+    
+    .weather-details, .weather-meta {
+        flex-wrap: wrap;
+    }
+}
+
+/* Additional mobile layout styles */
+
+/* Styles for the mobile layout class */
+.weather-time-container.mobile-layout {
+    flex-direction: column;
+    gap: 15px;
+}
+
+/* Mobile forecast items */
+.forecast-items.mobile-forecast {
+    flex-direction: column;
+}
+
+.mobile-forecast .forecast-item {
+    display: flex;
+    flex-direction: row;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+    padding: 10px;
+}
+
+.mobile-forecast .forecast-item > div {
+    margin: 0;
+}
+
+.mobile-forecast .forecast-day {
+    flex: 0 0 30%;
+    text-align: left;
+}
+
+.mobile-forecast .forecast-icon {
+    flex: 0 0 20%;
+    text-align: center;
+}
+
+.mobile-forecast .forecast-temp {
+    flex: 0 0 25%;
+    text-align: right;
+}
+
+.mobile-forecast .forecast-desc {
+    display: none; /* Hide description on very small screens to save space */
+}
+
+/* Enhanced mobile weather container */
+@media (max-width: 480px) {
+    .responsive-weather {
+        border-radius: 8px;
+        overflow: hidden;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .responsive-weather .weather-current {
+        padding: 12px;
+    }
+    
+    .responsive-weather .weather-info {
+        margin-top: 8px;
+    }
+    
+    .responsive-weather .weather-details {
+        margin-top: 4px;
+    }
+    
+    .timezone-container {
+        background-color: whitesmoke;
+        padding: 12px;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        width: 100%;
+    }
+    
+    .clock {
+        font-size: 1.4rem; /* Slightly larger clock on mobile when stacked */
+        margin-bottom: 8px;
+    }
+    
+    .timezone-select {
+        width: 100%;
+    }
+    
+    /* Ensure smoother transition when weather forecast expands */
+    .weather-forecast {
+        transition: max-height 0.5s ease-in-out;
+    }
+    
+    .weather-forecast.active {
+        max-height: 400px; /* Increased height for mobile column layout */
+    }
+}
+
+/* Dark mode considerations */
+body.dark-mode .timezone-container {
+    background-color: #34495e;
+}
+
+.mobile-weather-layout {
+    width: 100% !important;
+}
+
+.mobile-weather-layout .weather-current {
+    flex-wrap: nowrap !important;
+    align-items: center;
+    padding: 12px 15px;
+}
+
+.mobile-weather-layout .weather-info {
+    order: initial !important;
+    flex: 1;
+    margin-top: 0 !important;
+}
+
+.mobile-weather-layout .weather-main-info {
+    display: flex;
+    flex-direction: column;
+}
+
+.mobile-weather-layout .weather-details {
+    flex-direction: row;
+    flex-wrap: nowrap;
+    justify-content: flex-start;
+    width: auto !important;
+}
+
+.mobile-weather-layout .weather-meta {
+    display: flex;
+    width: auto !important;
+    justify-content: flex-start;
+    margin-top: 5px;
+}
+
+/* Improved humidity and wind visibility */
+.mobile-weather-layout .weather-humidity,
+.mobile-weather-layout .weather-wind {
+    white-space: nowrap;
+    margin-right: 10px;
+    font-size: 12px;
+}
+
+/* Improve sidebar user actions for mobile */
+.sidebar-user-actions {
+    padding: 0 10px;
+}
+
+.sidebar-user-actions button {
+    width: 100%;
+    justify-content: center;
+    margin-bottom: 10px;
+    text-align: center;
+}
+
+.sidebar-user-actions .add-event-btn {
+    background-color: var(--secondary-color);
+    padding: 12px;
+    border-radius: 4px;
+    color: white;
+    transition: all 0.3s ease;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+}
+
+.sidebar-user-actions .add-event-btn:hover {
+    background-color: var(--primary-color);
+    transform: translateY(-2px);
+}
+
+.sidebar-user-actions .add-event-btn span {
+    display: inline !important;
+}
+
+/* Refinements for user-actions in header for mobile view */
+@media (max-width: 768px) {
+    .user-actions {
+        display: flex;
+        align-items: center;
+    }
+    
+    /* Hide these buttons on small screens as they're now in sidebar */
+    .user-actions #add-event-btn,
+    .user-actions #nl-event-btn {
+        display: none;
+    }
+    
+    /* Keep theme toggle in header */
+    .user-actions #theme-toggle {
+        margin-left: auto;
+    }
+
+    /* Adjust header layout */
+    header {
+        justify-content: space-between;
+    }
+    
+    /* Weather fixes for very small screens */
+    @media (max-width: 480px) {
+        .weather-container {
+            max-width: none;
+            margin-right: 0;
+        }
+        
+        .weather-info {
+            width: auto !important;
+            min-width: 0;
+        }
+        
+        .weather-temp {
+            font-size: 1.1rem;
+        }
+        
+        .weather-desc {
+            font-size: 0.8rem;
+        }
+        
+        .weather-meta {
+            gap: 10px;
+        }
+        
+        .weather-icon {
+            font-size: 1.8rem;
+        }
+    }
+}
+
+/* Weather container scroll prevention for small screens */
+@media (max-width: 480px) {
+    /* Make sure there's no horizontal scrolling on mobile */
+    body, 
+    .app-container,
+    .main-content,
+    header,
+    .weather-container,
+    .user-actions {
+        max-width: 100vw;
+        overflow-x: hidden;
+    }
+    
+    /* Force weather container to take appropriate width */
+    .weather-container {
+        width: auto;
+        max-width: 100%;
+    }
+    
+    /* Stack account button and theme toggle if needed */
+    .user-actions {
+        flex-wrap: nowrap;
+        gap: 5px;
+    }
+    
+    /* Make header more compact */
+    header {
+        padding: 10px;
+    }
+    
+    /* Adjust Logo size */
+    .logo {
+        font-size: 18px;
+    }
+    
+    .logo i {
+        font-size: 22px;
+        margin-right: 5px;
+    }
+}
