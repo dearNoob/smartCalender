@@ -11,7 +11,7 @@
     <div class="app-container">
         <aside class="sidebar">
             <div class="sidebar-header">
-                <div class="sidebar-title">My Calendars</div>
+                <div class="sidebar-title">My Calendar</div>
                 <button class="toggle-sidebar-btn" id="close-sidebar">
                     <i class="fas fa-times"></i>
                 </button>
@@ -65,7 +65,7 @@
             </div>
             <div class="mini-calendar">
                 <div class="mini-calendar-header">
-                    <div class="mini-calendar-title">April 2025</div>
+                    <div class="mini-calendar-title">May 2025</div>
                     <div class="mini-calendar-nav">
                         <button id="prev-mini-month"><i class="fas fa-chevron-left"></i></button>
                         <button id="next-mini-month"><i class="fas fa-chevron-right"></i></button>
@@ -604,9 +604,19 @@
     </div>
     
     <div class="alert-container" id="alert-container"></div>
+    
+    
+    <script src="./script.js"></script>
+    <script src="./weather.js"></script>
+    <script src="./oneCalendar-enhancements.js"></script>
+    <script src="./responsive-fixes.js"></script>
+    <script src="./weather-fix.js"></script>
+    <script src="./notification-alarm.js"></script>
 
-    <script src="script.js"></script>
-    <script src="oneCalendar-enhancements.js"></script>
-    <script src="responsive-fixes.js"></script>
+    <audio id="notification-sound" preload="auto">
+        <source src="https://cdnjs.cloudflare.com/ajax/libs/ion-sound/3.0.7/sounds/bell_ring.mp3" type="audio/mpeg">
+        <source src="https://cdnjs.cloudflare.com/ajax/libs/ion-sound/3.0.7/sounds/water_droplet.mp3" type="audio/mpeg">
+        Your browser does not support the audio element.
+    </audio>
 </body>
 </html>

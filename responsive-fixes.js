@@ -5,7 +5,6 @@ document.addEventListener('DOMContentLoaded', function() {
 function initializeResponsiveUI() {
     // Responsive elements setup
     setupResponsiveHeaderButtons();
-    enhanceWeatherResponsiveness(); // This function might need review based on styles.css
     
     // Listen for window resize events
     window.addEventListener('resize', handleWindowResize);
@@ -62,40 +61,6 @@ function setupResponsiveHeaderButtons() {
             cloneNlEventBtn.addEventListener('click', openNaturalLanguageModal);
         }
         sidebarActions.appendChild(cloneNlEventBtn);
-    }
-}
-
-// Function to handle weather component responsiveness
-// Review if this is still needed or if CSS handles it entirely.
-// This JS was primarily creating 'weather-main-info' div. If your CSS can achieve the layout
-// without this dynamic DOM manipulation, this function can be simplified or removed.
-function enhanceWeatherResponsiveness() {
-    const weatherDetails = document.querySelector('.weather-details');
-    if (!weatherDetails) {
-        // console.warn('Weather details element not found for responsive enhancement.');
-        return;
-    }
-
-    // Check if 'weather-main-info' already exists to prevent re-wrapping
-    if (weatherDetails.querySelector('.weather-main-info')) {
-        return;
-    }
-
-    const weatherTemp = weatherDetails.querySelector('.weather-temp');
-    const weatherDesc = weatherDetails.querySelector('.weather-desc');
-
-    if (weatherTemp && weatherDesc) {
-        const weatherMainInfo = document.createElement('div');
-        weatherMainInfo.className = 'weather-main-info';
-        
-        // Move temp and desc into the new container
-        weatherMainInfo.appendChild(weatherTemp.cloneNode(true)); // Use clones
-        weatherMainInfo.appendChild(weatherDesc.cloneNode(true)); // Use clones
-        
-        // Clear original temp and desc and add the new main info container
-        weatherTemp.remove();
-        weatherDesc.remove();
-        weatherDetails.insertBefore(weatherMainInfo, weatherDetails.firstChild);
     }
 }
 
