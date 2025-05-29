@@ -73,6 +73,31 @@ body.dark-mode .btn-secondary {
     padding: 20px;
 }
 
+.bangla{
+     background-color: #4A8CC7;
+  color: white;
+  padding: 10px 20px;
+  border: none;
+  width: 83%;
+  border-radius: 6px;
+  font-size: 24px bold;
+  cursor: pointer;
+  text-align: center;
+  text-decoration: none;
+  display: inline-block;
+  transition: background-color 0.3s ease;
+}
+
+
+.bangla a {
+  color: white;
+  text-decoration: none;
+}
+
+.bangla:hover {
+  background-color: #3a76a5;
+}
+
 /* Enhanced Header Styles */
 header {
     display: flex;
